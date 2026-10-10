@@ -318,32 +318,13 @@ function ToolStackScene() {
       const frameSize = node.id === "service" ? [1.6, 1.45, 0.48] : [1.04, 1.04, 0.06];
       const frame = new THREE.LineSegments(
         new THREE.EdgesGeometry(new THREE.BoxGeometry(...frameSize)),
-        new THREE.LineBasicMaterial({ color: node.color, transparent: true, opacity: 0.3 }),
+        new THREE.LineBasicMaterial({ color: node.color, transparent: true, opacity: node.id === "service" ? 0 : 0.3 }),
       );
       frame.userData.nodeFrame = node.id;
       nodeGroup.add(frame);
       framesRef.current.set(node.id, frame);
 
-      if (node.id === "service") {
-        const ec2Texture = textureLoader.load(node.containerLogo);
-        ec2Texture.colorSpace = THREE.SRGBColorSpace;
-        const ec2Logo = new THREE.Sprite(
-          new THREE.SpriteMaterial({ map: ec2Texture, transparent: true, depthTest: false, depthWrite: false }),
-        );
-        ec2Logo.renderOrder = 20;
-        ec2Logo.scale.set(0.36, 0.36, 1);
-        ec2Logo.position.set(0, 0.47, 0.27);
-        nodeGroup.add(ec2Logo);
-        const springTexture = textureLoader.load(node.logo);
-        springTexture.colorSpace = THREE.SRGBColorSpace;
-        const springLogo = new THREE.Sprite(
-          new THREE.SpriteMaterial({ map: springTexture, transparent: true, depthTest: false, depthWrite: false }),
-        );
-        springLogo.renderOrder = 21;
-        springLogo.scale.set(0.68, 0.68, 1);
-        springLogo.position.set(0, -0.08, 0.27);
-        nodeGroup.add(springLogo);
-      } else {
+      if (node.id !== "service") {
         const texture = textureLoader.load(node.logo);
         texture.colorSpace = THREE.SRGBColorSpace;
         const logo = new THREE.Sprite(
@@ -355,13 +336,13 @@ function ToolStackScene() {
       }
 
       const ring = new THREE.Mesh(
-        new THREE.TorusGeometry(node.id === "service" ? 0.9 : 0.66, 0.018, 8, 48),
+        new THREE.TorusGeometry(0.66, 0.018, 8, 48),
         new THREE.MeshBasicMaterial({ color: node.color, transparent: true, opacity: 0.46 }),
       );
       ring.rotation.x = Math.PI / 2;
       ring.position.copy(positions.get(node.id));
       ring.userData.nodeRing = node.id;
-      graph.add(ring);
+      if (node.id !== "service") graph.add(ring);
     });
 
     const particles = [];
@@ -451,7 +432,7 @@ function ToolStackScene() {
       mesh.scale.setScalar(id === selectedId ? 1.08 : 1);
     });
     framesRef.current.forEach((frame, id) => {
-      frame.material.opacity = id === selectedId ? 0.95 : 0.3;
+      frame.material.opacity = id === "service" ? 0 : id === selectedId ? 0.95 : 0.3;
       frame.scale.setScalar(id === selectedId ? 1.05 : 1);
     });
   }, [selectedId]);
