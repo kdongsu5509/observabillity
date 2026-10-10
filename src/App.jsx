@@ -12,7 +12,7 @@ function Logo() {
         <i />
         <i />
       </span>
-      <b>비비디의 Observabillity</b>
+      <b>비비디 모니터링</b>
     </a>
   );
 }
@@ -123,7 +123,7 @@ export default function App() {
           ? "thanks"
           : "read";
   useEffect(() => {
-    document.title = "비비디의 Observabillity";
+    document.title = "비비디 모니터링";
   }, []);
   if (page === "practice") return <Suspense fallback={<main className="grafana-host">실습 화면을 불러오는 중입니다…</main>}><Practice /></Suspense>;
   let content;
