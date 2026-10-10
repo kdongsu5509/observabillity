@@ -35,6 +35,30 @@ function ToolSeriesNav({ series, current }) {
   );
 }
 
+function AlternativeTable({ rows }) {
+  return (
+    <section className="tool-lesson-comparison" aria-labelledby="tool-lesson-comparison-title">
+      <div className="tool-lesson-comparison-heading">
+        <span>DECISION TABLE</span>
+        <h2 id="tool-lesson-comparison-title">같은 기준으로 비교하기</h2>
+        <p>대표 대안의 장점만 보지 말고, 우리 팀이 감당할 운영 조건까지 함께 적습니다.</p>
+      </div>
+      <div className="tool-lesson-comparison-scroll">
+        <table>
+          <thead>
+            <tr><th>도구</th><th>잘 맞는 상황</th><th>장점</th><th>운영 시 주의</th></tr>
+          </thead>
+          <tbody>
+            {rows.map(([name, fit, strengths, limits]) => (
+              <tr key={name}><th scope="row">{name}</th><td>{fit}</td><td>{strengths}</td><td>{limits}</td></tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  );
+}
+
 export function ToolLearningPaths() {
   return (
     <section className="tool-learning-paths" aria-labelledby="tool-learning-title">
@@ -106,6 +130,7 @@ export function ToolLessonPage({ toolId, chapterSlug }) {
               </ul>
             </section>
           ))}
+          {chapter.comparison && <AlternativeTable rows={chapter.comparison} />}
           {chapter.architectureTool && (
             <section className="tool-lesson-architecture">
               <ToolArchitectureGallery focusTool={chapter.architectureTool} />
