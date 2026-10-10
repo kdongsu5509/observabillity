@@ -27,7 +27,7 @@ const maps = {
       subtitle: "컴포넌트로 경로 잇기",
       intro:
         "Alloy 설정은 컴포넌트의 출력과 다음 컴포넌트의 입력을 연결합니다. 수집한 신호를 처리하고 목적지별로 보낼 수 있습니다.",
-      note: "메트릭 스크레이프, 로그 읽기, OTLP 트레이스 수신은 별도 경로입니다. 한 경로가 정상이라고 나머지도 정상인 것은 아닙니다.",
+      note: "메트릭 remote_write, 로그 읽기, OTLP 트레이스 수신은 별도 경로입니다. 한 경로가 정상이라고 나머지도 정상인 것은 아닙니다.",
       refs: ["alloypipe", "alloytelemetry"],
     },
     {
@@ -42,29 +42,29 @@ const maps = {
   ],
   prometheus: [
     {
-      id: "target",
-      title: "대상 발견",
-      subtitle: "무엇을 읽을까",
+      id: "remote-write",
+      title: "Remote write 수신",
+      subtitle: "Alloy에서 샘플 받기",
       intro:
-        "Prometheus는 설정이나 서비스 발견으로 스크레이프할 대상의 주소를 정합니다.",
-      note: "대상을 발견하지 못하면 메트릭이 0인 것이 아니라 시계열 자체가 들어오지 않을 수 있습니다.",
-      refs: ["promarch"],
+        "비비디 구성에서는 Alloy가 애플리케이션 메트릭을 받아 Prometheus의 remote write 엔드포인트로 보냅니다.",
+      note: "Prometheus가 앱 서버로 직접 접속하지 않으므로 수신 엔드포인트와 Alloy 전송 큐를 먼저 확인합니다.",
+      refs: ["promarch", "promcli"],
     },
     {
-      id: "scrape",
-      title: "스크레이프",
-      subtitle: "HTTP로 메트릭 가져오기",
+      id: "wal",
+      title: "WAL",
+      subtitle: "최근 샘플을 먼저 기록",
       intro:
-        "Prometheus는 계측된 대상의 메트릭 엔드포인트를 주기적으로 읽습니다. 비비디 예시의 Spring Boot Actuator가 한 대상입니다.",
-      note: "Alloy가 중간에서 스크레이프해 원격 쓰기로 전달하는 구성도 가능합니다. 이 그림은 Prometheus가 직접 읽는 기본 경로입니다.",
-      refs: ["promarch", "metrics", "alloytelemetry"],
+        "remote write로 들어온 샘플은 최근 데이터 복구를 위해 WAL에 먼저 기록됩니다.",
+      note: "WAL 디스크가 차거나 재시작 복구가 길어지면 수신 지연과 저장 지연을 나눠서 봅니다.",
+      refs: ["promstorage", "promcli"],
     },
     {
       id: "tsdb",
       title: "로컬 TSDB",
       subtitle: "라벨과 샘플 보관",
       intro:
-        "스크레이프한 샘플은 시간과 라벨을 가진 시계열로 로컬 저장소에 보관됩니다. 라벨 조합이 늘면 시계열 수도 늘어납니다.",
+        "remote write 샘플은 시간과 라벨을 가진 시계열로 로컬 저장소에 보관됩니다. 라벨 조합이 늘면 시계열 수도 늘어납니다.",
       note: "weddingId처럼 계속 달라지는 값을 메트릭 라벨에 넣을지 먼저 검토해야 합니다.",
       refs: ["promarch", "cardinality"],
     },
@@ -74,7 +74,7 @@ const maps = {
       subtitle: "조회와 평가",
       intro:
         "PromQL로 시계열을 조회하고 기록 규칙이나 경보 규칙을 평가할 수 있습니다. Grafana 같은 클라이언트가 Prometheus API로 결과를 시각화합니다.",
-      note: "패널이 비었다면 조회식만 고치기 전에 대상 상태와 스크레이프 성공부터 확인합니다.",
+      note: "패널이 비었다면 조회식만 고치기 전에 remote write 수신과 WAL 기록이 있었는지 확인합니다.",
       refs: ["promarch", "promql"],
     },
   ],
@@ -342,8 +342,8 @@ export function TransportDeepDive() {
         <div>
           <h4>Alloy 안의 역할</h4>
           <p>
-            Alloy는 실행 중인 컴포넌트의 출력과 입력을 연결합니다. 발견한 대상을
-            스크레이프하거나 로그를 읽고, OTLP를 수신할 수 있습니다. 그다음 처리
+            Alloy는 실행 중인 컴포넌트의 출력과 입력을 연결합니다. 메트릭 입력을 받고
+            로그를 읽거나 OTLP를 수신할 수 있습니다. 그다음 처리
             컴포넌트를 거쳐 신호별 저장소로 전송합니다. 앱 계측과 달리 배포
             위치, 접근 권한, 전송 실패를 운영자가 점검해야 합니다.
           </p>
@@ -389,14 +389,14 @@ const toolArchitectures = [
       "Alloy는 데이터를 저장하지 않습니다. 여러 입력을 받아 필요한 처리만 거친 뒤 메트릭·로그·트레이스 저장소로 전달합니다.",
     refs: ["alloy", "alloypipe", "alloytelemetry"],
     nodes: [
-      { label: "입력", detail: "OTLP 수신 · Prometheus scrape · 컨테이너 로그" },
+      { label: "입력", detail: "OTLP 수신 · 메트릭 입력 · 컨테이너 로그" },
       { label: "발견·수신", detail: "대상 주소를 찾고 신호를 각 파이프라인에 넣습니다." },
       { label: "처리", detail: "batch, 필터, 라벨 정리, 민감정보 가리기를 적용합니다." },
       { label: "전달", detail: "remote_write · loki.write · OTLP exporter로 보냅니다." },
     ],
     operator: {
       components: [
-        { name: "discovery", role: "스크레이프·로그 대상 주소를 발견", watch: "대상 수, discovery 오류, 권한" },
+        { name: "discovery", role: "수집 대상 주소와 메타데이터를 발견", watch: "대상 수, discovery 오류, 권한" },
         { name: "receiver", role: "OTLP·파일·컨테이너 입력을 수신", watch: "수신량, 거부율, 포트" },
         { name: "processor", role: "batch·필터·라벨 변환을 실행", watch: "처리 지연, drop 수, 메모리" },
         { name: "exporter", role: "Prometheus·Loki·Tempo로 전달", watch: "재시도, 큐 길이, 전송 오류" },
@@ -415,22 +415,22 @@ const toolArchitectures = [
     name: "Prometheus",
     role: "메트릭 수집 · 시계열 저장",
     summary:
-      "Prometheus는 주기적으로 대상을 읽어 시계열로 저장하고 PromQL과 HTTP API로 조회하게 합니다.",
+      "비비디에서는 Alloy가 remote_write로 보낸 샘플을 Prometheus가 저장하고 PromQL과 HTTP API로 조회하게 합니다.",
     refs: ["prom", "promarch", "promstorage", "promql"],
     nodes: [
-      { label: "대상", detail: "Spring Boot Actuator 같은 /metrics 엔드포인트입니다." },
-      { label: "Scrape manager", detail: "설정된 주기마다 대상에서 메트릭을 pull 합니다." },
+      { label: "Remote write", detail: "Alloy가 /api/v1/write로 보낸 샘플을 받습니다." },
       { label: "WAL", detail: "최근 샘플을 먼저 기록해 프로세스 재시작에 대비합니다." },
       { label: "TSDB 블록", detail: "시간 구간별 압축 블록과 인덱스로 보관합니다." },
+      { label: "Rule evaluator", detail: "기록 규칙과 경보 규칙을 평가합니다." },
       { label: "PromQL/API", detail: "Grafana가 오류율·지연·포화 같은 질문을 보냅니다." },
     ],
     operator: {
       components: [
-        { name: "service discovery", role: "scrape target과 job·instance를 생성", watch: "up=0, target health, label 변경" },
-        { name: "scrape manager", role: "주기마다 /metrics를 pull하고 샘플 검증", watch: "scrape duration, sample limit, timeout" },
+        { name: "remote write receiver", role: "Alloy 샘플을 /api/v1/write로 수신", watch: "receiver error, 수신량, 전송 재시도" },
         { name: "WAL", role: "최근 샘플을 순서대로 디스크에 기록", watch: "WAL replay 시간, 디스크, corruption" },
-        { name: "TSDB + rule evaluator", role: "블록 압축과 recording·alerting rule 평가", watch: "compaction, rule evaluation 지연" },
-        { name: "HTTP API", role: "PromQL 결과와 상태를 Grafana에 반환", watch: "쿼리 지연, 동시성, 원격 쓰기" },
+        { name: "TSDB", role: "샘플을 블록과 인덱스로 보관", watch: "compaction, head series, 디스크" },
+        { name: "rule evaluator", role: "recording·alerting rule 평가", watch: "rule evaluation 지연, 실패" },
+        { name: "HTTP API", role: "PromQL 결과와 상태를 Grafana에 반환", watch: "쿼리 지연, 동시성, 수신 상태" },
       ],
       modelTitle: "Prometheus 시계열과 라벨",
       modelRows: [
@@ -439,7 +439,7 @@ const toolArchitectures = [
         ["method·status·uri", "값 종류가 제한된 요청 차원", "uri는 /api/weddings/{id}처럼 템플릿으로 유지"],
         ["userId·weddingId", "요청마다 달라지는 고유값", "메트릭 라벨로 금지; 로그·트레이스로 이동"],
       ],
-      checks: ["target이 UP이어도 애플리케이션 지표가 실제로 증가하는가", "라벨 조합 수와 보관 기간으로 시계열 수를 추정했는가", "고비용 PromQL이 대시보드 자동 새로고침마다 실행되지 않는가"],
+      checks: ["Alloy remote_write가 Prometheus 수신 엔드포인트까지 도달하는가", "라벨 조합 수와 보관 기간으로 시계열 수를 추정했는가", "고비용 PromQL이 대시보드 자동 새로고침마다 실행되지 않는가"],
     },
   },
   {
@@ -625,14 +625,14 @@ const architectureLayouts = {
   prometheus: {
     height: 340,
     zones: [
-      { label: "TARGETS", x: 18, y: 44, w: 250, h: 230 },
+      { label: "REMOTE WRITE", x: 18, y: 44, w: 250, h: 230 },
       { label: "INGEST", x: 286, y: 44, w: 340, h: 230 },
       { label: "TSDB / QUERY", x: 644, y: 44, w: 378, h: 230 },
     ],
     nodes: [{ x: 42, y: 104 }, { x: 298, y: 104 }, { x: 470, y: 104 }, { x: 660, y: 104 }, { x: 660, y: 208 }],
-    edges: [{ from: 0, to: 1, label: "HTTP / 9090" }, { from: 1, to: 2, label: "pull / scrape" }, { from: 2, to: 3, label: "WAL → blocks" }, { from: 3, to: 4, label: "PromQL / HTTP" }],
+    edges: [{ from: 0, to: 1, label: "POST /api/v1/write" }, { from: 1, to: 2, label: "remote_write" }, { from: 2, to: 3, label: "WAL → blocks" }, { from: 3, to: 4, label: "PromQL / HTTP" }],
     outputs: [{ x: 840, y: 230, text: "Grafana / Alerting" }],
-    failure: { from: 0, to: 1, label: "scrape timeout" },
+    failure: { from: 0, to: 1, label: "receiver unavailable / retry" },
   },
   loki: {
     height: 360,
@@ -680,7 +680,7 @@ function ArchitectureSvg({ tool, active, setActive, instance = "inline" }) {
   const nodeHeight = 90;
   const protocolMap = {
     alloy: ["OTLP / 4317", "discovery", "pipeline", "remote_write"],
-    prometheus: ["HTTP / 9090", "pull / scrape", "WAL", "PromQL / HTTP"],
+    prometheus: ["Alloy", "remote_write", "WAL", "rules", "PromQL / HTTP"],
     loki: ["POST /push", "ring", "chunks + index", "LogQL / HTTP"],
     tempo: ["OTLP / 4317", "ring", "blocks", "TraceQL / HTTP"],
     grafana: ["HTTP / HTTPS", "query", "transform", "alert"],

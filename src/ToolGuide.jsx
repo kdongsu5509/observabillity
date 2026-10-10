@@ -54,7 +54,7 @@ const layers = [
       {
         name: "Prometheus",
         bestFor: "작은 규모에서 직접 운영하고 PromQL을 사용할 때",
-        strengths: "구조가 단순하고 scrape·WAL·TSDB·PromQL 흐름을 직접 확인할 수 있습니다.",
+        strengths: "구조가 단순하고 remote_write·WAL·TSDB·PromQL 흐름을 직접 확인할 수 있습니다.",
         limits: "장기 보관과 수평 확장은 별도 설계가 필요합니다.",
         ref: "prom",
       },
