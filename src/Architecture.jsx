@@ -805,11 +805,14 @@ function ArchitectureSvg({ tool, active, setActive, instance = "inline" }) {
   );
 }
 
-export function ToolArchitectureGallery() {
+export function ToolArchitectureGallery({ focusTool } = {}) {
   const [selectedTool, setSelectedTool] = useState(0);
   const [activeNode, setActiveNode] = useState(0);
   const [isExpanded, setIsExpanded] = useState(false);
-  const tool = toolArchitectures[selectedTool];
+  const visibleTools = focusTool
+    ? toolArchitectures.filter((item) => item.id === focusTool)
+    : toolArchitectures;
+  const tool = visibleTools[selectedTool] || visibleTools[0];
   useEffect(() => {
     if (!isExpanded) return undefined;
     const closeWithEscape = (event) => {
@@ -838,10 +841,10 @@ export function ToolArchitectureGallery() {
             마우스를 올려 보세요. 선택한 요소의 역할과 다음 단계가 바로 아래에 바뀝니다.
           </p>
         </div>
-        <span className="tool-architecture-count">{toolArchitectures.length}개 도구 · {tool.nodes.length}개 구성</span>
+        <span className="tool-architecture-count">{visibleTools.length}개 도구 · {tool.nodes.length}개 구성</span>
       </div>
-      <div className="tool-architecture-tabs" role="tablist" aria-label="도구별 내부 구성">
-        {toolArchitectures.map((item, index) => (
+      {!focusTool && <div className="tool-architecture-tabs" role="tablist" aria-label="도구별 내부 구성">
+        {visibleTools.map((item, index) => (
           <button
             key={item.id}
             type="button"
@@ -856,7 +859,7 @@ export function ToolArchitectureGallery() {
             <small>{item.role}</small>
           </button>
         ))}
-      </div>
+      </div>}
       <div className="tool-architecture-card">
         <div className="tool-architecture-card-head">
           <div>

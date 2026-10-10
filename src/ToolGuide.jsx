@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { alternatives, sources } from "./content";
 import { ToolArchitectureGallery } from "./Architecture";
+import { ToolLearningPaths } from "./ToolLessonPage";
 
 const layers = [
   {
@@ -400,6 +401,7 @@ export default function ToolGuide() {
             </article>
           </div>
         </section>
+        <ToolLearningPaths />
         <section className="guide-stack">
           <span className="story-section-label">THE CURRENT STACK</span>
           <h2>비비디는</h2>

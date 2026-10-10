@@ -2,6 +2,7 @@ import { Suspense, lazy, useEffect, useState } from "react";
 import { videos } from "./content";
 import { ReadingArticle, ReadingHome } from "./Reading";
 import ToolGuide from "./ToolGuide";
+import { ToolLessonPage } from "./ToolLessonPage";
 const Practice = lazy(() => import("./GrafanaPractice"));
 
 function Logo() {
@@ -112,10 +113,11 @@ function Thanks() {
 
 export default function App() {
   const path = decodeURI(location.pathname);
+  const toolPath = path.match(/^\/tools\/([^/]+)\/([^/]+)$/);
   const page =
     path === "/practice"
       ? "practice"
-      : path === "/tools"
+      : path === "/tools" || toolPath
         ? "tools"
         : path === "/thanks-to"
           ? "thanks"
@@ -125,7 +127,8 @@ export default function App() {
   }, []);
   if (page === "practice") return <Suspense fallback={<main className="grafana-host">실습 화면을 불러오는 중입니다…</main>}><Practice /></Suspense>;
   let content;
-  if (page === "tools") content = <ToolGuide />;
+  if (toolPath) content = <ToolLessonPage toolId={toolPath[1]} chapterSlug={toolPath[2]} />;
+  else if (page === "tools") content = <ToolGuide />;
   else if (page === "thanks") content = <Thanks />;
   else if (path.startsWith("/read/"))
     content = <ReadingArticle id={path.split("/")[2]} />;
