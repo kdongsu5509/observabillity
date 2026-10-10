@@ -1084,6 +1084,254 @@
   gap: 16px;
   margin-top: 35px;
 }
+
+/* Architecture gallery: official documentation style */
+.tool-architecture {
+  position: relative;
+  isolation: isolate;
+  padding: 34px;
+  border: 1px solid #d8e0e8;
+  border-radius: 14px;
+  background: #f7f9fb;
+  color: #182230;
+  box-shadow: 0 12px 30px rgba(35, 53, 73, .08);
+}
+.tool-architecture-heading h2,
+.tool-architecture-card-head h3,
+.tool-architecture-ops h4,
+.tool-architecture-model h4,
+.tool-architecture-checks h4 {
+  color: #162536;
+}
+.tool-architecture-heading p,
+.tool-architecture-card-head p,
+.tool-architecture-ops-heading p {
+  color: #526273;
+}
+.tool-architecture-count {
+  border-color: #ccd7e2;
+  background: #fff;
+  color: #485e75;
+}
+.tool-architecture-tabs {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+}
+.tool-architecture-tabs button {
+  position: relative;
+  min-height: 104px;
+  border: 1px solid #d5dee8;
+  border-radius: 10px;
+  background: #fff;
+  color: #2c3c4d;
+  box-shadow: 0 2px 5px rgba(47, 67, 89, .04);
+}
+.tool-architecture-tabs button:hover,
+.tool-architecture-tabs button:focus-visible,
+.tool-architecture-tabs button.is-active {
+  border-color: #47789f;
+  background: #f1f7fb;
+  color: #172c42;
+  box-shadow: 0 0 0 2px rgba(71, 120, 159, .12);
+}
+.tool-architecture-tabs span.tool-tab-index {
+  position: absolute;
+  top: 15px;
+  right: 12px;
+  color: #8b9bad;
+  font-size: 10px;
+}
+.tool-brand-mark {
+  display: inline-grid !important;
+  place-items: center;
+  width: 27px;
+  height: 27px;
+  border-radius: 7px;
+  color: #fff !important;
+  font-size: 14px !important;
+  font-weight: 900;
+  line-height: 1;
+}
+.brand-alloy { background: #3b8d73; }
+.brand-prometheus { background: #e6522c; }
+.brand-loki { background: #f29b38; }
+.brand-tempo { background: #7f56d9; }
+.brand-grafana { background: #f47b20; }
+.tool-architecture-tabs strong {
+  margin: 10px 0 4px;
+  color: #1c3043;
+}
+.tool-architecture-tabs small {
+  color: #68798b;
+}
+.tool-architecture-card {
+  overflow: visible;
+  border: 1px solid #d2dce6;
+  border-radius: 11px;
+  background: #fff;
+  box-shadow: 0 5px 16px rgba(34, 52, 72, .06);
+}
+.tool-architecture-card-head {
+  padding: 24px 26px 15px;
+}
+.tool-architecture-card-head > div > span,
+.tool-architecture-detail > span,
+.tool-architecture-ops-heading > div > span,
+.tool-architecture-model > div > span {
+  color: #55738f;
+}
+.tool-architecture-card-head h3 {
+  font-size: 27px;
+}
+.tool-architecture-main {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 280px;
+  gap: 18px;
+  align-items: start;
+  padding: 0 24px 20px;
+}
+.tool-architecture-diagram-wrap {
+  min-width: 0;
+  border: 1px solid #d9e2eb;
+  border-radius: 10px;
+  background: #fff;
+}
+.tool-architecture-svg {
+  width: 100%;
+  min-width: 0;
+  padding: 0;
+}
+.tool-svg-grid { fill: url(#grid-alloy); }
+.tool-svg-zone rect { fill: #f7fafc; stroke: #d9e2eb; stroke-width: 1; }
+.tool-svg-zone-0 rect { fill: #f3f8fb; }
+.tool-svg-zone-1 rect { fill: #fbfbfd; }
+.tool-svg-zone-2 rect { fill: #f9f7fd; }
+.tool-svg-zone text {
+  fill: #8090a0;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .08em;
+}
+.tool-svg-brand {
+  fill: #21364a;
+  font-size: 14px;
+  font-weight: 900;
+}
+.tool-svg-flow {
+  fill: none;
+  stroke: #7a8d9f;
+  stroke-width: 2;
+  transition: stroke .18s ease, stroke-width .18s ease;
+}
+.tool-svg-flow.is-highlighted { stroke: #3f729a; stroke-width: 3; }
+.tool-svg-packet { fill: #417aa5; }
+.tool-svg-failure {
+  fill: none;
+  stroke: #c44545;
+  stroke-width: 1.8;
+  stroke-dasharray: 5 5;
+}
+.tool-svg-failure-label {
+  fill: #a63c3c;
+  font-size: 10px;
+  font-weight: 800;
+  text-anchor: middle;
+}
+.tool-architecture-svg-node rect {
+  fill: #fff;
+  stroke: #bdcad6;
+  stroke-width: 1.4;
+  transition: fill .16s ease, stroke .16s ease, filter .16s ease;
+}
+.tool-architecture-svg-node:hover rect,
+.tool-architecture-svg-node:focus rect,
+.tool-architecture-svg-node.is-active rect {
+  fill: #f2f8fc;
+  stroke: #3e749b;
+  stroke-width: 2;
+  filter: drop-shadow(0 3px 4px rgba(44, 83, 112, .14));
+}
+.tool-svg-node-icon { fill: #edf2f6; stroke: #aebdca; }
+.tool-svg-node-icon-text { fill: #456174; font-size: 10px; font-weight: 900; }
+.tool-architecture-svg-index { fill: #8292a2; font-size: 9px; }
+.tool-architecture-svg-label { fill: #263b4e; font-size: 12px; font-weight: 800; }
+.tool-architecture-svg-hint { fill: #60778b; font-size: 10px; }
+.tool-architecture-detail {
+  position: sticky;
+  top: 22px;
+  display: block;
+  min-height: 224px;
+  margin: 0;
+  padding: 18px;
+  border: 1px solid #cddae5;
+  border-left: 4px solid #47789f;
+  border-radius: 9px;
+  background: #f7fafc;
+}
+.tool-architecture-detail h4 { margin: 8px 0 8px; color: #1c3449; font-size: 19px; }
+.tool-architecture-detail p { color: #516577; line-height: 1.6; }
+.tool-architecture-detail-meta {
+  display: grid;
+  gap: 5px;
+  margin-top: 22px;
+  padding-top: 13px;
+  border-top: 1px solid #d8e2ea;
+  color: #516577;
+  font-size: 11px;
+}
+.tool-architecture-detail-meta code { color: #2f6c93; font-size: 11px; }
+.tool-architecture-figure {
+  margin: 0 24px 20px;
+  border-color: #d2dce6;
+  background: #fff;
+}
+.tool-architecture-ops {
+  margin: 0 24px 20px;
+  padding-top: 20px;
+  border-top-color: #d9e2eb;
+}
+.tool-architecture-components article {
+  border-color: #d3dee8;
+  background: #f8fafc;
+}
+.tool-architecture-components article > span { color: #55738f; }
+.tool-architecture-components h5 { color: #243a4d; }
+.tool-architecture-components p { color: #536577; }
+.tool-architecture-components small { color: #657b8e; }
+.tool-architecture-model table { background: #fff; color: #2b4154; }
+.tool-architecture-model th,
+.tool-architecture-model td { border-color: #d5e0e9; }
+.tool-architecture-model thead th { background: #eef4f8; color: #3c617d; }
+.tool-architecture-model tbody th { background: #f7fafc; }
+.tool-architecture-model code { color: #2f6c93; }
+.tool-architecture-checks { border-left-color: #47789f; background: #f5f8fa; }
+.tool-architecture-checks ul { color: #526777; }
+.tool-architecture-links { padding-bottom: 23px; }
+.tool-architecture-links a { background: #edf3f7; color: #2f607f; }
+.tool-architecture-links a:hover,
+.tool-architecture-links a:focus-visible { background: #dcebf4; }
+
+@media (prefers-reduced-motion: reduce) {
+  .tool-svg-packet { display: none; }
+}
+@media (max-width: 900px) {
+  .tool-architecture { padding: 22px 16px; }
+  .tool-architecture-tabs { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .tool-architecture-main { grid-template-columns: 1fr; padding: 0 16px 18px; }
+  .tool-architecture-detail { position: static; min-height: 0; }
+  .tool-architecture-svg { min-height: 235px; }
+  .tool-architecture-card-head { display: block; padding: 20px 16px 13px; }
+  .tool-architecture-card-head p { margin-top: 10px; }
+  .tool-architecture-ops,
+  .tool-architecture-figure { margin-left: 16px; margin-right: 16px; }
+  .tool-architecture-components { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 560px) {
+  .tool-architecture-tabs { grid-template-columns: 1fr; }
+  .tool-architecture-components { grid-template-columns: 1fr; }
+  .tool-architecture-svg { min-width: 720px; }
+  .tool-architecture-diagram-wrap { overflow-x: auto; }
+}
 .layer-card {
   display: grid;
   grid-template-columns: 1fr 2fr;

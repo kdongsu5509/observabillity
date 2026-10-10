@@ -610,10 +610,38 @@ function OperatorDetails({ operator }) {
 }
 
 function ArchitectureSvg({ tool, active, setActive }) {
-  const width = 960;
-  const height = 170;
-  const gap = 18;
-  const nodeWidth = Math.min(168, (width - gap * (tool.nodes.length - 1)) / tool.nodes.length);
+  const width = 1040;
+  const height = 300;
+  const gap = 22;
+  const nodeWidth = Math.min(174, (width - 88 - gap * (tool.nodes.length - 1)) / tool.nodes.length);
+  const left = (width - (nodeWidth * tool.nodes.length + gap * (tool.nodes.length - 1))) / 2;
+  const protocolMap = {
+    alloy: ["OTLP / 4317", "discovery", "pipeline", "remote_write"],
+    prometheus: ["HTTP / 9090", "pull / scrape", "WAL", "PromQL / HTTP"],
+    loki: ["POST /push", "ring", "chunks + index", "LogQL / HTTP"],
+    tempo: ["OTLP / 4317", "ring", "blocks", "TraceQL / HTTP"],
+    grafana: ["HTTP / HTTPS", "query", "transform", "alert"],
+  };
+  const failureMap = {
+    alloy: "export retry / backoff",
+    prometheus: "scrape timeout",
+    loki: "429 / retry",
+    tempo: "queue full",
+    grafana: "query error",
+  };
+  const brandMap = { alloy: "A", prometheus: "P", loki: "L", tempo: "T", grafana: "G" };
+  const protocols = protocolMap[tool.id] || [];
+  const nodeX = (i) => left + i * (nodeWidth + gap);
+  const zone = (i) => {
+    if (i === 0) return { label: "COLLECT / RECEIVE", x: 18, w: nodeWidth + 34 };
+    if (i === tool.nodes.length - 1) return { label: "QUERY / OUTPUT", x: nodeX(i) - 17, w: nodeWidth + 34 };
+    const start = nodeX(1) - 17;
+    const end = nodeX(tool.nodes.length - 2) + nodeWidth + 17;
+    return { label: "PROCESS / STORE", x: start, w: Math.max(180, end - start) };
+  };
+  const zones = tool.nodes.length > 2
+    ? [zone(0), zone(Math.min(1, tool.nodes.length - 1)), zone(tool.nodes.length - 1)]
+    : [zone(0), zone(tool.nodes.length - 1)];
   return (
     <svg
       className="tool-architecture-svg"
@@ -622,27 +650,65 @@ function ArchitectureSvg({ tool, active, setActive }) {
       aria-label={`${tool.name} 내부 구성 파이프라인`}
     >
       <defs>
+        <pattern id={`grid-${tool.id}`} width="18" height="18" patternUnits="userSpaceOnUse">
+          <path d="M 18 0 L 0 0 0 18" fill="none" stroke="#e7edf4" strokeWidth="1" />
+        </pattern>
         <marker id={`arrow-${tool.id}`} markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
-          <path d="M0,0 L8,4 L0,8 z" fill="#8fe6c2" />
+          <path d="M0,0 L8,4 L0,8 z" fill="#60758b" />
         </marker>
+        <marker id={`failure-arrow-${tool.id}`} markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
+          <path d="M0,0 L8,4 L0,8 z" fill="#c44545" />
+        </marker>
+        {tool.nodes.slice(0, -1).map((_, i) => {
+          const x1 = nodeX(i) + nodeWidth;
+          const x2 = nodeX(i + 1);
+          return <path key={`path-def-${i}`} id={`flow-${tool.id}-${i}`} d={`M ${x1} 137 C ${x1 + 18} 137, ${x2 - 18} 137, ${x2} 137`} />;
+        })}
       </defs>
+
+      <rect className="tool-svg-grid" style={{ fill: `url(#grid-${tool.id})` }} x="0" y="0" width={width} height={height} rx="12" />
+      <text className="tool-svg-brand" x="24" y="28">{brandMap[tool.id]}</text>
+      {zones.map((item, index) => (
+        <g key={`${item.label}-${index}`} className={`tool-svg-zone tool-svg-zone-${index}`}>
+          <rect x={item.x} y="48" width={item.w} height="176" rx="10" />
+          <text x={item.x + 12} y="68">{item.label}</text>
+        </g>
+      ))}
       {tool.nodes.slice(0, -1).map((_, i) => {
-        const x = 34 + (i + 1) * nodeWidth + i * gap;
+        const x = nodeX(i) + nodeWidth;
+        const next = nodeX(i + 1);
         return (
-          <line
+          <path
             key={`line-${i}`}
             x1={x}
-            y1="85"
-            x2={x + gap - 6}
-            y2="85"
-            stroke="#8fe6c2"
-            strokeWidth="2"
+            y1="137"
+            x2={next}
+            y2="137"
+            d={`M ${x} 137 C ${x + 18} 137, ${next - 18} 137, ${next} 137`}
+            className={`tool-svg-flow ${active === i || active === i + 1 ? "is-highlighted" : ""}`}
             markerEnd={`url(#arrow-${tool.id})`}
           />
         );
       })}
+      {tool.nodes.slice(0, -1).map((_, i) => (
+        <circle key={`packet-${i}`} className="tool-svg-packet" r="4">
+          <animateMotion dur="2.8s" repeatCount="indefinite" begin={`${i * 0.32}s`}>
+            <mpath href={`#flow-${tool.id}-${i}`} />
+          </animateMotion>
+        </circle>
+      ))}
+      {tool.nodes.length > 1 && (
+        <>
+          <path
+            className="tool-svg-failure"
+            d={`M ${nodeX(0) + nodeWidth / 2} 212 C ${nodeX(0) + nodeWidth / 2} 270, ${nodeX(1) + nodeWidth / 2} 270, ${nodeX(1) + nodeWidth / 2} 212`}
+            markerEnd={`url(#failure-arrow-${tool.id})`}
+          />
+          <text className="tool-svg-failure-label" x={(nodeX(0) + nodeX(1) + nodeWidth) / 2} y="286">{failureMap[tool.id]}</text>
+        </>
+      )}
       {tool.nodes.map((node, i) => {
-        const x = 34 + i * (nodeWidth + gap);
+        const x = nodeX(i);
         const selected = active === i;
         return (
           <g
@@ -662,15 +728,17 @@ function ArchitectureSvg({ tool, active, setActive }) {
             }}
             className={`tool-architecture-svg-node ${selected ? "is-active" : ""}`}
           >
-            <rect x={x} y="38" width={nodeWidth} height="94" rx="10" />
-            <text x={x + 14} y="62" className="tool-architecture-svg-index">
+            <rect x={x} y="92" width={nodeWidth} height="90" rx="8" />
+            <circle cx={x + 22} cy="115" r="12" className="tool-svg-node-icon" />
+            <text x={x + 22} y="119" textAnchor="middle" className="tool-svg-node-icon-text">{String(i + 1)}</text>
+            <text x={x + 42} y="119" className="tool-architecture-svg-index">
               {String(i + 1).padStart(2, "0")}
             </text>
-            <text x={x + 14} y="88" className="tool-architecture-svg-label">
+            <text x={x + 14} y="145" className="tool-architecture-svg-label">
               {node.label}
             </text>
-            <text x={x + 14} y="111" className="tool-architecture-svg-hint">
-              {selected ? "선택됨 · 아래 설명" : "호버하여 보기"}
+            <text x={x + 14} y="165" className="tool-architecture-svg-hint">
+              {protocols[i] || (selected ? "selected" : "hover to inspect")}
             </text>
           </g>
         );
@@ -711,7 +779,8 @@ export function ToolArchitectureGallery() {
             className={selectedTool === index ? "is-active" : ""}
             onClick={() => selectTool(index)}
           >
-            <span>{String(index + 1).padStart(2, "0")}</span>
+            <span className={`tool-brand-mark brand-${item.id}`} aria-hidden="true">{{ alloy: "A", prometheus: "P", loki: "L", tempo: "T", grafana: "G" }[item.id]}</span>
+            <span className="tool-tab-index">{String(index + 1).padStart(2, "0")}</span>
             <strong>{item.name}</strong>
             <small>{item.role}</small>
           </button>
@@ -725,7 +794,22 @@ export function ToolArchitectureGallery() {
           </div>
           <p>{tool.summary}</p>
         </div>
-        <ArchitectureSvg tool={tool} active={activeNode} setActive={setActiveNode} />
+        <div className="tool-architecture-main">
+          <div className="tool-architecture-diagram-wrap">
+            <ArchitectureSvg tool={tool} active={activeNode} setActive={setActiveNode} />
+          </div>
+          <div className="tool-architecture-detail" aria-live="polite">
+            <span>구성 {String(activeNode + 1).padStart(2, "0")}</span>
+            <div>
+              <h4>{node.label}</h4>
+              <p>{node.detail}</p>
+            </div>
+            <div className="tool-architecture-detail-meta">
+              <b>연결 방식</b>
+              <code>{({ alloy: "OTLP / 4317", prometheus: "HTTP / 9090", loki: "HTTP / push", tempo: "OTLP / 4317", grafana: "HTTP / HTTPS" })[tool.id]}</code>
+            </div>
+          </div>
+        </div>
         {tool.id === "loki" && (
           <figure className="tool-architecture-figure">
             <img src="/diagrams/loki-architecture.svg" alt="Loki의 로그 쓰기 경로, 저장 형식, 읽기 경로" />
@@ -735,13 +819,6 @@ export function ToolArchitectureGallery() {
             </figcaption>
           </figure>
         )}
-        <div className="tool-architecture-detail" aria-live="polite">
-          <span>구성 {String(activeNode + 1).padStart(2, "0")}</span>
-          <div>
-            <h4>{node.label}</h4>
-            <p>{node.detail}</p>
-          </div>
-        </div>
         <OperatorDetails operator={tool.operator} />
         <ArchitectureLinks ids={tool.refs} />
       </div>

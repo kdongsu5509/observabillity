@@ -95,27 +95,25 @@ function buildTelemetry() {
       },
       message,
     });
-    if (i % 20 === 0) {
-      const duration = error
-        ? 2700 + Math.round(random() * 700)
-        : 70 + Math.round(random() * 350);
-      traces.push({
-        time,
-        traceId,
-        service: "bibbidi-backend",
-        status: error ? 502 : 200,
-        duration,
-        spans: [
-          { name: "POST /api/wedding-profiles", duration },
-          { name: "validateWeddingProfile", duration: 12 + Math.round(random() * 15) },
-          {
-            name: "partnerCalendar",
-            duration: error ? duration - 160 : Math.round(duration * 0.55),
-          },
-          { name: "saveWeddingProfile", duration: 30 + Math.round(random() * 45) },
-        ],
-      });
-    }
+    const duration = error
+      ? 2700 + Math.round(random() * 700)
+      : 70 + Math.round(random() * 350);
+    traces.push({
+      time,
+      traceId,
+      service: "bibbidi-backend",
+      status: error ? 502 : 200,
+      duration,
+      spans: [
+        { name: "POST /api/wedding-profiles", duration },
+        { name: "validateWeddingProfile", duration: 12 + Math.round(random() * 15) },
+        {
+          name: "partnerCalendar",
+          duration: error ? duration - 160 : Math.round(duration * 0.55),
+        },
+        { name: "saveWeddingProfile", duration: 30 + Math.round(random() * 45) },
+      ],
+    });
   }
   logs.sort((a, b) => b.time - a.time);
   traces.sort((a, b) => b.time - a.time);
