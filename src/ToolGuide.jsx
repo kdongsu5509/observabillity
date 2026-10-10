@@ -338,6 +338,7 @@ export default function ToolGuide() {
     search: "labels",
     otel: "new",
   });
+  const [openLayer, setOpenLayer] = useState(null);
   const set = (name, value) => setForm((v) => ({ ...v, [name]: value }));
   return (
     <div className="tool-guide">
@@ -453,36 +454,49 @@ export default function ToolGuide() {
                   <Docs ids={layer.refs} />
                 </div>
                 <div className="layer-options">
-                  <div className="layer-options-heading">
-                    <b>대표 도구를 같은 기준으로 비교</b>
-                    <span>무엇을 잘하고, 어디서 비용이 생기는지 확인하세요.</span>
-                  </div>
-                  <div className="layer-options-grid">
-                    {layer.options.map((option) => (
-                      <article key={option.name} className="layer-option">
-                        <div className="layer-option-title">
-                          <h4>{option.name}</h4>
-                          <a href={sources[option.ref][1]} target="_blank" rel="noreferrer">
-                            공식 문서 ↗
-                          </a>
-                        </div>
-                        <dl>
-                          <div>
-                            <dt>잘 맞는 상황</dt>
-                            <dd>{option.bestFor}</dd>
-                          </div>
-                          <div>
-                            <dt>장점</dt>
-                            <dd>{option.strengths}</dd>
-                          </div>
-                          <div>
-                            <dt>주의할 점</dt>
-                            <dd>{option.limits}</dd>
-                          </div>
-                        </dl>
-                      </article>
-                    ))}
-                  </div>
+                  <button
+                    type="button"
+                    className="layer-options-toggle"
+                    aria-expanded={openLayer === i}
+                    aria-controls={`layer-options-${i}`}
+                    onClick={() => setOpenLayer(openLayer === i ? null : i)}
+                  >
+                    <span>
+                      <b>대표 도구를 같은 기준으로 비교</b>
+                      <small>무엇을 잘하고, 어디서 비용이 생기는지 확인하세요.</small>
+                    </span>
+                    <strong aria-hidden="true">{openLayer === i ? "−" : "+"}</strong>
+                  </button>
+                  {openLayer === i && (
+                    <div className="layer-options-body" id={`layer-options-${i}`}>
+                      <div className="layer-options-grid">
+                        {layer.options.map((option) => (
+                          <article key={option.name} className="layer-option">
+                            <div className="layer-option-title">
+                              <h4>{option.name}</h4>
+                              <a href={sources[option.ref][1]} target="_blank" rel="noreferrer">
+                                공식 문서 ↗
+                              </a>
+                            </div>
+                            <dl>
+                              <div>
+                                <dt>잘 맞는 상황</dt>
+                                <dd>{option.bestFor}</dd>
+                              </div>
+                              <div>
+                                <dt>장점</dt>
+                                <dd>{option.strengths}</dd>
+                              </div>
+                              <div>
+                                <dt>주의할 점</dt>
+                                <dd>{option.limits}</dd>
+                              </div>
+                            </dl>
+                          </article>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </article>
             ))}

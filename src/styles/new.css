@@ -910,6 +910,156 @@
   color: #c5e1d2;
   font-size: 13px;
 }
+.tool-architecture-figure {
+  margin: 8px 24px 20px;
+  padding: 12px;
+  border: 1px solid #b9d8c4;
+  border-radius: 9px;
+  background: #f7fbf8;
+}
+.tool-architecture-figure img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 5px;
+}
+.tool-architecture-figure figcaption {
+  margin: 10px 3px 0;
+  color: #536a5d;
+  font-size: 12px;
+  line-height: 1.55;
+}
+.tool-architecture-ops {
+  margin: 0 24px 20px;
+  padding-top: 20px;
+  border-top: 1px solid #3b6a55;
+}
+.tool-architecture-ops-heading,
+.tool-architecture-model {
+  display: flex;
+  justify-content: space-between;
+  align-items: end;
+  gap: 20px;
+}
+.tool-architecture-ops-heading > div > span,
+.tool-architecture-model > div > span {
+  color: #8fe6c2;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: .08em;
+}
+.tool-architecture-ops h4,
+.tool-architecture-model h4,
+.tool-architecture-checks h4 {
+  margin: 5px 0 0;
+  color: #fff;
+  font-size: 18px;
+}
+.tool-architecture-ops-heading p {
+  max-width: 480px;
+  margin: 0;
+  color: #bddaca;
+  font-size: 12px;
+}
+.tool-architecture-components {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 14px;
+}
+.tool-architecture-components article {
+  min-width: 0;
+  padding: 13px;
+  border: 1px solid #37654f;
+  border-radius: 7px;
+  background: #143529;
+}
+.tool-architecture-components article > span {
+  color: #8fe6c2;
+  font-size: 10px;
+  font-weight: 900;
+}
+.tool-architecture-components h5 {
+  margin: 8px 0 5px;
+  color: #fff;
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+.tool-architecture-components p {
+  margin: 0;
+  color: #c1dfcf;
+  font-size: 11px;
+  line-height: 1.45;
+}
+.tool-architecture-components small {
+  display: block;
+  margin-top: 10px;
+  color: #9ecbb3;
+  font-size: 10px;
+  line-height: 1.45;
+}
+.tool-architecture-model {
+  align-items: start;
+  margin-top: 21px;
+}
+.tool-architecture-model > div:first-child {
+  flex: none;
+  width: 210px;
+}
+.tool-architecture-model-scroll {
+  flex: 1;
+  min-width: 0;
+  overflow-x: auto;
+}
+.tool-architecture-model table {
+  width: 100%;
+  min-width: 590px;
+  border-collapse: collapse;
+  background: #f7fbf8;
+  color: #27463a;
+  font-size: 11px;
+}
+.tool-architecture-model th,
+.tool-architecture-model td {
+  padding: 9px 10px;
+  border: 1px solid #cbe0d3;
+  text-align: left;
+  vertical-align: top;
+  line-height: 1.45;
+}
+.tool-architecture-model thead th {
+  background: #dff2e6;
+  color: #17674f;
+  font-size: 10px;
+}
+.tool-architecture-model tbody th {
+  width: 150px;
+  background: #eef8f1;
+}
+.tool-architecture-model code {
+  color: #0d7d67;
+  font-size: 10px;
+  overflow-wrap: anywhere;
+}
+.tool-architecture-checks {
+  margin-top: 20px;
+  padding: 14px 16px;
+  border-left: 3px solid #8fe6c2;
+  background: #112f26;
+}
+.tool-architecture-checks h4 {
+  font-size: 14px;
+}
+.tool-architecture-checks ul {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px 20px;
+  margin: 10px 0 0;
+  padding-left: 17px;
+  color: #c5e1d2;
+  font-size: 11px;
+  line-height: 1.5;
+}
 .tool-architecture-links {
   display: flex;
   flex-wrap: wrap;
@@ -967,8 +1117,49 @@
 .layer-options {
   grid-column: 1 / -1;
   margin-top: 4px;
-  padding-top: 20px;
+  padding-top: 14px;
   border-top: 1px solid #e2ece6;
+}
+.layer-options-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid #d7e6dd;
+  border-radius: 7px;
+  background: #f7fbf8;
+  color: #173f32;
+  text-align: left;
+}
+.layer-options-toggle:hover,
+.layer-options-toggle:focus-visible,
+.layer-options-toggle[aria-expanded="true"] {
+  border-color: #5bb697;
+  background: #effaf3;
+}
+.layer-options-toggle span {
+  display: block;
+}
+.layer-options-toggle b,
+.layer-options-toggle small {
+  display: block;
+}
+.layer-options-toggle b {
+  font-size: 14px;
+}
+.layer-options-toggle small {
+  margin-top: 4px;
+  color: #68796f;
+  font-size: 12px;
+}
+.layer-options-toggle > strong {
+  color: #087e6b;
+  font-size: 22px;
+  line-height: 1;
+}
+.layer-options-body {
+  padding-top: 12px;
 }
 .layer-options-heading {
   display: flex;
@@ -1569,6 +1760,16 @@
   .tool-architecture-tabs {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
+  .tool-architecture-components {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .tool-architecture-model {
+    display: block;
+  }
+  .tool-architecture-model > div:first-child {
+    width: auto;
+    margin-bottom: 12px;
+  }
   .layer-options-grid {
     grid-template-columns: 1fr;
   }
@@ -1662,6 +1863,18 @@
   .tool-architecture-tabs {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+  .tool-architecture-ops-heading {
+    display: block;
+  }
+  .tool-architecture-ops-heading p {
+    margin-top: 9px;
+  }
+  .tool-architecture-components {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .tool-architecture-checks ul {
+    grid-template-columns: 1fr;
+  }
   .layer-options-heading {
     display: block;
   }
@@ -1695,6 +1908,9 @@
     display: none;
   }
   .tool-architecture-tabs {
+    grid-template-columns: 1fr;
+  }
+  .tool-architecture-components {
     grid-template-columns: 1fr;
   }
 }

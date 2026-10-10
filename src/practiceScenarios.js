@@ -54,11 +54,11 @@ export const practiceScenarios = [
       "14:04  3.1 req/s",
       "14:06  0.2 req/s",
     ],
-    question: "오류 요청률이 가장 높은 시각은?",
-    choices: ["14:00", "14:04", "14:06"],
-    answer: 1,
+    question: "오류 요청률이 갑자기 상승한 구간을 찾았다면 다음에 무엇을 해야 할까요?",
+    choices: ["같은 시간대의 로그와 트레이스 확인", "대시보드 색상 변경", "수집 간격을 무조건 늘리기"],
+    answer: 0,
     explanation:
-      "14:04에 초당 3.1건으로 최고치입니다. 이 시간대를 로그와 트레이스에서 이어서 조사할 수 있습니다.",
+      "오류율이 오른 시각의 로그와 트레이스를 이어 보면 실패한 요청과 느린 구간을 좁힐 수 있습니다.",
   },
   {
     id: "trace",
@@ -138,11 +138,11 @@ export const practiceScenarios = [
       "14:02  3건  Pending",
       "14:04  5건  Alerting",
     ],
-    question: "14:04에 알림 상태는?",
+    question: "오류가 기준 이상으로 계속되면 어떤 상태가 되어야 할까요?",
     choices: ["Normal", "Pending", "Alerting"],
     answer: 2,
     explanation:
-      "예제에서는 기준을 넘긴 상태가 이어져 14:04에 Alerting으로 바뀝니다. 실제 규칙은 대기 시간과 No Data 처리도 정해야 합니다.",
+      "기준을 넘긴 상태가 대기 시간 동안 이어지면 Alerting이 됩니다. 실제 규칙은 대기 시간과 No Data 처리도 정해야 합니다.",
   },
   {
     id: "performance",
@@ -158,11 +158,11 @@ export const practiceScenarios = [
       "100 req/s  p95 320 ms   errors 0.2%",
       "200 req/s  p95 910 ms   errors 4.8%",
     ],
-    question: "목표 p95가 500ms라면 어느 부하부터 기준을 넘습니까?",
-    choices: ["50 req/s", "100 req/s", "200 req/s"],
-    answer: 2,
+    question: "p95가 목표 500ms를 넘는 구간에서 함께 확인할 것은?",
+    choices: ["글꼴 크기", "오류율과 포화 지표", "로그 보관 정책만"],
+    answer: 1,
     explanation:
-      "200 req/s에서 p95가 910ms입니다. 오류도 함께 증가하므로 포화 지표와 느린 트레이스를 조사합니다.",
+      "지연이 증가하는 시점에 오류율과 포화 지표를 함께 보고, 느린 트레이스로 병목을 찾습니다.",
   },
   {
     id: "incident",

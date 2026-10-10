@@ -394,6 +394,21 @@ const toolArchitectures = [
       { label: "처리", detail: "batch, 필터, 라벨 정리, 민감정보 가리기를 적용합니다." },
       { label: "전달", detail: "remote_write · loki.write · OTLP exporter로 보냅니다." },
     ],
+    operator: {
+      components: [
+        { name: "discovery", role: "스크레이프·로그 대상 주소를 발견", watch: "대상 수, discovery 오류, 권한" },
+        { name: "receiver", role: "OTLP·파일·컨테이너 입력을 수신", watch: "수신량, 거부율, 포트" },
+        { name: "processor", role: "batch·필터·라벨 변환을 실행", watch: "처리 지연, drop 수, 메모리" },
+        { name: "exporter", role: "Prometheus·Loki·Tempo로 전달", watch: "재시도, 큐 길이, 전송 오류" },
+      ],
+      modelTitle: "Alloy 라벨과 메타데이터",
+      modelRows: [
+        ["service.name", "앱의 논리적 서비스 이름", "대시보드·로그 스트림의 기본 축으로 고정"],
+        ["deployment.environment.name", "production·staging 같은 환경", "환경별 파이프라인과 알림을 분리"],
+        ["trace_id / wedding_id", "요청·결혼 정보 단위의 고유값", "라벨로 만들지 말고 로그·트레이스 본문에 보관"],
+      ],
+      checks: ["파이프라인마다 입력·출력 컴포넌트가 연결됐는가", "민감정보 drop이 저장소로 보내기 전에 실행되는가", "전송 실패가 무한 재시도로 메모리를 잠식하지 않는가"],
+    },
   },
   {
     id: "prometheus",
@@ -409,6 +424,23 @@ const toolArchitectures = [
       { label: "TSDB 블록", detail: "시간 구간별 압축 블록과 인덱스로 보관합니다." },
       { label: "PromQL/API", detail: "Grafana가 오류율·지연·포화 같은 질문을 보냅니다." },
     ],
+    operator: {
+      components: [
+        { name: "service discovery", role: "scrape target과 job·instance를 생성", watch: "up=0, target health, label 변경" },
+        { name: "scrape manager", role: "주기마다 /metrics를 pull하고 샘플 검증", watch: "scrape duration, sample limit, timeout" },
+        { name: "WAL", role: "최근 샘플을 순서대로 디스크에 기록", watch: "WAL replay 시간, 디스크, corruption" },
+        { name: "TSDB + rule evaluator", role: "블록 압축과 recording·alerting rule 평가", watch: "compaction, rule evaluation 지연" },
+        { name: "HTTP API", role: "PromQL 결과와 상태를 Grafana에 반환", watch: "쿼리 지연, 동시성, 원격 쓰기" },
+      ],
+      modelTitle: "Prometheus 시계열과 라벨",
+      modelRows: [
+        ["__name__", "메트릭 이름(http_server_requests_seconds_count)", "이름만으로도 의미가 드러나고 타입을 혼합하지 않기"],
+        ["job / instance", "수집 작업과 대상 주소", "자동 라벨이므로 대시보드의 기본 필터로 사용"],
+        ["method·status·uri", "값 종류가 제한된 요청 차원", "uri는 /api/weddings/{id}처럼 템플릿으로 유지"],
+        ["userId·weddingId", "요청마다 달라지는 고유값", "메트릭 라벨로 금지; 로그·트레이스로 이동"],
+      ],
+      checks: ["target이 UP이어도 애플리케이션 지표가 실제로 증가하는가", "라벨 조합 수와 보관 기간으로 시계열 수를 추정했는가", "고비용 PromQL이 대시보드 자동 새로고침마다 실행되지 않는가"],
+    },
   },
   {
     id: "loki",
@@ -424,6 +456,23 @@ const toolArchitectures = [
       { label: "Index + chunks", detail: "라벨 인덱스와 압축 로그 청크를 저장합니다." },
       { label: "Query frontend", detail: "LogQL을 나누고 Querier가 최근·과거 청크를 읽습니다." },
     ],
+    operator: {
+      components: [
+        { name: "distributor", role: "테넌트·라벨 검증과 해시 링 분배", watch: "4xx·5xx, rate limit, ring 상태" },
+        { name: "ingester", role: "스트림별 메모리 청크와 WAL 기록", watch: "flush 지연, WAL 디스크, 청크 크기" },
+        { name: "index gateway", role: "라벨 인덱스와 청크 위치를 조회", watch: "인덱스 캐시, object store latency" },
+        { name: "querier", role: "Ingester·저장소를 읽고 중복 제거", watch: "쿼리 범위, 동시성, cache hit" },
+        { name: "compactor", role: "인덱스 병합과 retention 삭제 실행", watch: "삭제 지연, 보존 기간, 삭제 목록" },
+      ],
+      modelTitle: "Loki 스트림·라벨·로그 본문",
+      modelRows: [
+        ["service_name", "로그를 만든 서비스", "낮은 카디널리티 라벨. 서비스별 스트림을 좁히는 첫 조건"],
+        ["deployment_environment_name", "production·staging 환경", "환경을 반드시 좁힌 뒤 시간 범위를 제한"],
+        ["severity_text", "INFO·WARN·ERROR 수준", "종류가 제한된 필터 차원으로 사용"],
+        ["trace_id·wedding_id", "한 요청·결혼 정보의 고유값", "인덱스 라벨이 아니라 본문 또는 structured metadata로 검색"],
+      ],
+      checks: ["스트림 라벨 조합이 요청마다 늘어나지 않는가", "write ACK 뒤 WAL·청크·오브젝트 저장소가 모두 보호되는가", "LogQL에 라벨 선택과 좁은 시간 범위가 먼저 오는가"],
+    },
   },
   {
     id: "tempo",
@@ -439,6 +488,23 @@ const toolArchitectures = [
       { label: "Block + object storage", detail: "완성된 trace 블록을 오브젝트 저장소에 보관합니다." },
       { label: "Query frontend", detail: "TraceQL을 나누고 최근·과거 데이터를 합쳐 응답합니다." },
     ],
+    operator: {
+      components: [
+        { name: "receiver", role: "OTLP·Jaeger·Zipkin span을 수신", watch: "수신량, 거부율, protocol mismatch" },
+        { name: "distributor", role: "span을 저장 경로로 분배", watch: "ring·replication·queue" },
+        { name: "live-store", role: "trace_id별 최근 span을 조립", watch: "max_trace_idle, live bytes, WAL" },
+        { name: "block builder", role: "완성 trace를 Parquet 블록으로 생성", watch: "block size, flush 지연, compaction" },
+        { name: "querier", role: "TraceQL로 최근·과거 블록을 검색", watch: "query duration, cache, object store" },
+      ],
+      modelTitle: "Tempo Resource·Span 속성",
+      modelRows: [
+        ["trace_id / span_id", "트레이스와 구간을 이어 주는 ID", "로그에 trace_id를 넣고 span_id는 구간 조사에 사용"],
+        ["service.name", "span을 만든 서비스(Resource)", "서비스 그래프·서비스 선택의 기준으로 고정"],
+        ["http.request.method·status", "해당 span의 작업 속성", "TraceQL 조건과 장애 원인 확인에 사용"],
+        ["wedding_id", "고객 도메인의 고유 ID", "모든 span 속성으로 넣기 전에 개인정보·카디널리티 검토"],
+      ],
+      checks: ["샘플링이 너무 일찍 적용되어 오류 trace가 사라지지 않는가", "로그와 트레이스의 trace_id 전파 형식이 같은가", "최근 데이터와 object storage의 보존·조회 경로가 모두 열려 있는가"],
+    },
   },
   {
     id: "grafana",
@@ -454,6 +520,23 @@ const toolArchitectures = [
       { label: "Panel/Dashboard", detail: "Time series, Logs, Traces 등으로 결과를 시각화합니다." },
       { label: "Alerting", detail: "쿼리 결과를 조건과 연락 지점으로 연결합니다." },
     ],
+    operator: {
+      components: [
+        { name: "data source", role: "URL·인증·UID로 백엔드 연결", watch: "health check, timeout, UID 변경" },
+        { name: "query runner", role: "PromQL·LogQL·TraceQL 실행", watch: "시간 범위, refresh, query error" },
+        { name: "transform", role: "결과 필드 조인·필터·변환", watch: "행 수, null, 계산 오류" },
+        { name: "panel/dashboard", role: "시각화·변수·시간 범위 구성", watch: "패널 지연, max data points" },
+        { name: "alert rule", role: "쿼리 평가와 contact point 전송", watch: "pending·firing, notification error" },
+      ],
+      modelTitle: "Grafana 조사 단위",
+      modelRows: [
+        ["datasource uid", "쿼리를 보낼 Prometheus·Loki·Tempo 식별자", "이름이 아니라 고정 UID를 대시보드와 규칙에 사용"],
+        ["variables", "env·service·interval 같은 URL 변수", "변수 범위를 제한하고 고카디널리티 목록을 자동 조회하지 않기"],
+        ["query + time range", "패널이 백엔드에 던지는 질문", "같은 시간축으로 메트릭→로그→트레이스를 연결"],
+        ["alert rule labels", "severity·service·team 라우팅 정보", "알림 내용보다 라우팅에 필요한 낮은 카디널리티만 유지"],
+      ],
+      checks: ["대시보드 패널의 데이터소스 UID가 운영 환경과 일치하는가", "알림 규칙이 패널 시각화와 독립적으로 평가되는가", "Explore에서 같은 시간·서비스·trace_id로 세 신호를 교차 확인할 수 있는가"],
+    },
   },
 ];
 
@@ -465,6 +548,63 @@ function ArchitectureLinks({ ids }) {
           {sources[id][0]} ↗
         </a>
       ))}
+    </div>
+  );
+}
+
+function OperatorDetails({ operator }) {
+  if (!operator) return null;
+  return (
+    <div className="tool-architecture-ops">
+      <div className="tool-architecture-ops-heading">
+        <div>
+          <span>OPERATOR VIEW</span>
+          <h4>운영자가 확인할 내부 경계</h4>
+        </div>
+        <p>구성 요소가 무엇을 책임지고 어떤 상태를 관찰해야 하는지 정리했습니다.</p>
+      </div>
+      <div className="tool-architecture-components">
+        {operator.components.map((component, index) => (
+          <article key={component.name}>
+            <span>{String(index + 1).padStart(2, "0")}</span>
+            <h5>{component.name}</h5>
+            <p>{component.role}</p>
+            <small>관찰할 것 · {component.watch}</small>
+          </article>
+        ))}
+      </div>
+      <div className="tool-architecture-model">
+        <div>
+          <span>DATA MODEL</span>
+          <h4>{operator.modelTitle}</h4>
+        </div>
+        <div className="tool-architecture-model-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th>필드·구성</th>
+                <th>의미</th>
+                <th>운영 기준</th>
+              </tr>
+            </thead>
+            <tbody>
+              {operator.modelRows.map(([field, meaning, rule]) => (
+                <tr key={field}>
+                  <th scope="row"><code>{field}</code></th>
+                  <td>{meaning}</td>
+                  <td>{rule}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div className="tool-architecture-checks">
+        <h4>운영 전·후 점검</h4>
+        <ul>
+          {operator.checks.map((check) => <li key={check}>{check}</li>)}
+        </ul>
+      </div>
     </div>
   );
 }
@@ -586,6 +726,15 @@ export function ToolArchitectureGallery() {
           <p>{tool.summary}</p>
         </div>
         <ArchitectureSvg tool={tool} active={activeNode} setActive={setActiveNode} />
+        {tool.id === "loki" && (
+          <figure className="tool-architecture-figure">
+            <img src="/diagrams/loki-architecture.svg" alt="Loki의 로그 쓰기 경로, 저장 형식, 읽기 경로" />
+            <figcaption>
+              Loki의 쓰기·저장·읽기 경로를 한 장으로 정리한 그림입니다. 실제 배포 모드와
+              설정에 따라 구성 요소 수와 경로가 달라질 수 있습니다.
+            </figcaption>
+          </figure>
+        )}
         <div className="tool-architecture-detail" aria-live="polite">
           <span>구성 {String(activeNode + 1).padStart(2, "0")}</span>
           <div>
@@ -593,6 +742,7 @@ export function ToolArchitectureGallery() {
             <p>{node.detail}</p>
           </div>
         </div>
+        <OperatorDetails operator={tool.operator} />
         <ArchitectureLinks ids={tool.refs} />
       </div>
     </section>

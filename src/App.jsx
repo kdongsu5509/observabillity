@@ -1,8 +1,8 @@
-import { useEffect, useState } from "react";
+import { Suspense, lazy, useEffect, useState } from "react";
 import { videos } from "./content";
 import { ReadingArticle, ReadingHome } from "./Reading";
 import ToolGuide from "./ToolGuide";
-import Practice from "./GrafanaPractice";
+const Practice = lazy(() => import("./GrafanaPractice"));
 
 function Logo() {
   return (
@@ -123,7 +123,7 @@ export default function App() {
   useEffect(() => {
     document.title = "비비디의 Observabillity";
   }, []);
-  if (page === "practice") return <Practice />;
+  if (page === "practice") return <Suspense fallback={<main className="grafana-host">실습 화면을 불러오는 중입니다…</main>}><Practice /></Suspense>;
   let content;
   if (page === "tools") content = <ToolGuide />;
   else if (page === "thanks") content = <Thanks />;
