@@ -1,10 +1,10 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Description: Single public EC2 host for the Observabillity site, Grafana OSS, and telemetry stores.
+Description: One t4g.small EC2 host for the Observabillity Docker stack in an existing default VPC.
 
 Parameters:
   RepositoryUrl:
     Type: String
-    Description: HTTPS clone URL of the repository containing this project.
+    Description: HTTPS clone URL of the public repository containing this project.
   RepositoryBranch:
     Type: String
     Default: main
@@ -13,71 +13,29 @@ Parameters:
     NoEcho: true
     MinLength: 12
     Description: Bootstrap password for the Grafana admin account.
-  SshCidr:
-    Type: String
-    Default: 0.0.0.0/32
-    Description: CIDR allowed to reach SSH. Keep the default unless SSH is needed.
-  InstanceType:
-    Type: String
-    Default: t3.small
-    AllowedValues: [t3.small, t3.medium, t3.large]
+  VpcId:
+    Type: AWS::EC2::VPC::Id
+    Default: vpc-08668535b6694f809
+    Description: Existing default VPC in ap-northeast-2. This stack does not create a VPC.
+  SubnetId:
+    Type: AWS::EC2::Subnet::Id
+    Default: subnet-0753c8a3651196a92
+    Description: Existing default subnet in ap-northeast-2a. This stack does not create a subnet.
   UbuntuAmi:
     Type: AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>
-    Default: /aws/service/canonical/ubuntu/server/24.04/stable/current/amd64/hvm/ebs-gp3/ami-id
+    Default: /aws/service/canonical/ubuntu/server/24.04/stable/current/arm64/hvm/ebs-gp3/ami-id
 
 Resources:
-  VPC:
-    Type: AWS::EC2::VPC
-    Properties:
-      CidrBlock: 10.42.0.0/16
-      EnableDnsHostnames: true
-      EnableDnsSupport: true
-      Tags: [{Key: Name, Value: observability-vpc}]
-  InternetGateway:
-    Type: AWS::EC2::InternetGateway
-  GatewayAttachment:
-    Type: AWS::EC2::VPCGatewayAttachment
-    Properties:
-      VpcId: !Ref VPC
-      InternetGatewayId: !Ref InternetGateway
-  PublicSubnet:
-    Type: AWS::EC2::Subnet
-    Properties:
-      VpcId: !Ref VPC
-      CidrBlock: 10.42.1.0/24
-      MapPublicIpOnLaunch: true
-      AvailabilityZone: !Select [0, !GetAZs '']
-      Tags: [{Key: Name, Value: observability-public-subnet}]
-  PublicRouteTable:
-    Type: AWS::EC2::RouteTable
-    Properties:
-      VpcId: !Ref VPC
-  DefaultRoute:
-    Type: AWS::EC2::Route
-    DependsOn: GatewayAttachment
-    Properties:
-      RouteTableId: !Ref PublicRouteTable
-      DestinationCidrBlock: 0.0.0.0/0
-      GatewayId: !Ref InternetGateway
-  PublicRouteAssociation:
-    Type: AWS::EC2::SubnetRouteTableAssociation
-    Properties:
-      RouteTableId: !Ref PublicRouteTable
-      SubnetId: !Ref PublicSubnet
   SecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      GroupDescription: Public HTTP and restricted SSH for the observability host.
-      VpcId: !Ref VPC
+      GroupDescription: Public HTTP access and SSM-managed EC2 host.
+      VpcId: !Ref VpcId
       SecurityGroupIngress:
         - IpProtocol: tcp
           FromPort: 80
           ToPort: 80
           CidrIp: 0.0.0.0/0
-        - IpProtocol: tcp
-          FromPort: 22
-          ToPort: 22
-          CidrIp: !Ref SshCidr
       SecurityGroupEgress:
         - IpProtocol: -1
           CidrIp: 0.0.0.0/0
@@ -98,12 +56,11 @@ Resources:
       Roles: [!Ref HostRole]
   Host:
     Type: AWS::EC2::Instance
-    DependsOn: DefaultRoute
     Properties:
       ImageId: !Ref UbuntuAmi
-      InstanceType: !Ref InstanceType
+      InstanceType: t4g.small
       IamInstanceProfile: !Ref HostProfile
-      SubnetId: !Ref PublicSubnet
+      SubnetId: !Ref SubnetId
       SecurityGroupIds: [!Ref SecurityGroup]
       BlockDeviceMappings:
         - DeviceName: /dev/sda1
@@ -126,27 +83,18 @@ Resources:
           GRAFANA_ADMIN_PASSWORD=${GrafanaAdminPassword}
           GF_SERVER_ROOT_URL=%(protocol)s://%(domain)s/grafana/
           ENV
+          chmod 600 /opt/observability/app/.env
           cd /opt/observability/app
           docker compose pull
-          docker compose up -d --build
+          docker compose up -d --build --remove-orphans
           docker image prune -f
       Tags: [{Key: Name, Value: observability-host}]
-  ElasticIp:
-    Type: AWS::EC2::EIP
-    Properties:
-      Domain: vpc
-  ElasticIpAssociation:
-    Type: AWS::EC2::EIPAssociation
-    Properties:
-      AllocationId: !GetAtt ElasticIp.AllocationId
-      InstanceId: !Ref Host
-
 Outputs:
   PublicIp:
-    Value: !Ref ElasticIp
+    Value: !GetAtt Host.PublicIp
   SiteUrl:
-    Value: !Sub http://${ElasticIp}/
+    Value: !Sub http://${Host.PublicIp}/
   GrafanaUrl:
-    Value: !Sub http://${ElasticIp}/grafana/
+    Value: !Sub http://${Host.PublicIp}/grafana/
   SsmCommand:
     Value: !Sub aws ssm start-session --target ${Host}
