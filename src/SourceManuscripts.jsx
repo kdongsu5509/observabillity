@@ -86,6 +86,7 @@ const manuscriptPaths = {
     concept("00-먼저-읽기"),
   ],
   logging: [concept("01-로그-SLF4J-Logback")],
+  "mdc-ecs": [concept("03-MDC와-trace_id"), concept("01-로그-SLF4J-Logback")],
   metrics: [concept("02-메트릭-Actuator-Micrometer")],
   trace: [concept("03-MDC와-trace_id")],
   transport: [concept("04-OpenTelemetry와-OTLP")],

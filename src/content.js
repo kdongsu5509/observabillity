@@ -952,6 +952,47 @@ log.error("카카오 토큰 요청 실패 code={}", code, e);   // e 는 스택 
     lab: "logging",
   },
   {
+    id: "mdc-ecs",
+    number: "01A",
+    title: "MDC 값이 ECS JSON 필드가 되는 과정",
+    lead: "요청 안의 MDC 값이 로그 이벤트를 거쳐 ECS JSON 필드가 되고, 수집기와 Loki에서 검색되는 경로를 한 편으로 정리합니다.",
+    tags: ["MDC", "ECS", "구조화 로그"],
+    flow: ["요청 시작", "MDC 컨텍스트", "SLF4J 이벤트", "ECS JSON", "Alloy·Loki 검색"],
+    sections: [
+      {
+        title: "MDC는 요청의 메모장입니다",
+        text: "MDC(Mapped Diagnostic Context)는 현재 스레드에서 처리 중인 요청의 key-value 값을 로깅 이벤트에 붙이는 공간입니다. Spring Boot 트레이싱이 만든 traceId·spanId나 애플리케이션이 넣은 weddingId를 log.info() 호출마다 인자로 반복하지 않아도 로그에 함께 남길 수 있습니다.",
+        refs: ["mdc", "tracing"],
+      },
+      {
+        title: "ECS는 JSON 필드 이름의 약속입니다",
+        text: "ECS(Elastic Common Schema)는 로그를 JSON으로 저장할 때 레벨, 로거, 시간처럼 자주 쓰는 정보를 어떤 필드 이름에 담을지 정한 스키마입니다. MDC와 ECS는 같은 기능이 아닙니다. MDC는 값을 잠시 보관하는 컨텍스트이고, ECS는 출력된 이벤트의 필드 모양입니다.",
+        refs: ["ecs"],
+      },
+      {
+        title: "둘이 연결되는 지점",
+        text: "애플리케이션이 log.info()를 호출하면 SLF4J 창구를 통해 Logback 같은 구현으로 이벤트가 전달됩니다. Spring Boot의 구조화 로그 설정을 ecs로 선택하면 Logback이 이벤트와 MDC 값을 JSON 필드로 인코딩합니다. 그래서 MDC에 있던 traceId가 JSON의 traceId로 나타나는지, 프로젝트가 쓰는 필드 이름과 수집기 규칙이 같은지 확인해야 합니다.",
+        code: `logging:
+  structured:
+    format:
+      console: ecs`,
+        refs: ["springstructured", "springlog", "ecs"],
+      },
+      {
+        title: "수집기는 필드 이름을 바꾸지 않아야 합니다",
+        text: "Alloy는 애플리케이션의 stdout에서 JSON 한 줄을 읽어 Loki로 보냅니다. 이때 trace_id를 새 이름으로 바꾸거나 모든 JSON 필드를 라벨로 만들면 Grafana에서 로그와 트레이스를 잇지 못하거나 카디널리티가 커질 수 있습니다. 검색에 필요한 값과 로그 본문에 둘 값을 구분하고, 실제 Loki 라벨·structured metadata 규칙을 함께 확인합니다.",
+        refs: ["alloypipe", "lokilabel", "ecs"],
+      },
+      {
+        title: "한 줄을 끝까지 따라가기",
+        text: "운영에서 확인할 순서는 간단합니다. 먼저 애플리케이션 콘솔에 traceId·spanId가 JSON으로 찍히는지 봅니다. 다음으로 Alloy가 같은 JSON을 읽는지 확인합니다. 마지막으로 Loki에서 서비스와 시간으로 로그를 찾은 뒤 trace_id 링크로 Tempo를 열어 같은 요청인지 확인합니다.",
+        refs: ["mdc", "springstructured", "alloypipe", "lokilabel"],
+      },
+    ],
+    takeaway: "MDC는 요청의 값을 보관하고, ECS는 로그 이벤트의 필드 모양을 정하며, 구조화 로거가 둘을 한 줄의 JSON으로 연결합니다.",
+    lab: "logging",
+  },
+  {
     id: "metrics",
     number: "02",
     title: "숫자로 이상을 알아채기",
