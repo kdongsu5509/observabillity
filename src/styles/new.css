@@ -2679,6 +2679,31 @@
   font-size: 13px;
   line-height: 1.55;
 }
+.source-manuscript-body .source-mermaid {
+  margin: 22px 0;
+  padding: 18px;
+  overflow-x: auto;
+  border: 1px solid #dbe8e1;
+  border-radius: 12px;
+  background: #fbfffd;
+}
+.source-manuscript-body .source-mermaid svg {
+  display: block;
+  width: max-content;
+  min-width: 100%;
+  max-width: none;
+  height: auto;
+}
+.source-manuscript-body .source-mermaid-loading {
+  margin: 22px 0;
+  padding: 14px 16px;
+  border: 1px dashed #9ac8bb;
+  border-radius: 9px;
+  color: #4f6d64;
+}
+.source-manuscript-body .source-mermaid-fallback {
+  border-left: 3px solid #d99b32;
+}
 .source-manuscript-body :not(pre) > code {
   padding: 2px 5px;
   border-radius: 4px;

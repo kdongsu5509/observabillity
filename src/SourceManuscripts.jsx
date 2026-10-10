@@ -1,6 +1,73 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import mermaid from "mermaid";
+
+let mermaidRenderId = 0;
+
+function MermaidBlock({ chart }) {
+  const [result, setResult] = useState({ svg: "", error: false });
+
+  useEffect(() => {
+    let cancelled = false;
+    const render = async () => {
+      const id = `source-mermaid-${mermaidRenderId++}`;
+      try {
+        mermaid.initialize({
+          startOnLoad: false,
+          securityLevel: "strict",
+          theme: "base",
+          themeVariables: {
+            primaryColor: "#e8fffb",
+            primaryTextColor: "#163a31",
+            primaryBorderColor: "#008d7d",
+            lineColor: "#48766a",
+            secondaryColor: "#fff7d6",
+            tertiaryColor: "#f4f6f6",
+          },
+        });
+        const rendered = await mermaid.render(id, chart);
+        if (!cancelled) setResult({ svg: rendered.svg, error: false });
+      } catch {
+        if (!cancelled) setResult({ svg: "", error: true });
+      }
+    };
+    render();
+    return () => {
+      cancelled = true;
+    };
+  }, [chart]);
+
+  if (result.error) {
+    return (
+      <pre className="source-mermaid-fallback">
+        <code>{chart}</code>
+      </pre>
+    );
+  }
+  if (!result.svg) return <p className="source-mermaid-loading">다이어그램을 불러오는 중입니다…</p>;
+  return (
+    <div
+      className="source-mermaid"
+      role="img"
+      aria-label="원본 문서 Mermaid 다이어그램"
+      dangerouslySetInnerHTML={{ __html: result.svg }}
+    />
+  );
+}
+
+function MarkdownCode({ className, children }) {
+  const language = /language-(\w+)/.exec(className || "")?.[1];
+  const value = String(children).replace(/\n$/, "");
+  if (language === "mermaid") return <MermaidBlock chart={value} />;
+  return <code className={className}>{children}</code>;
+}
+
+function MarkdownPre({ children }) {
+  const child = Array.isArray(children) ? children[0] : children;
+  if (child?.type === MermaidBlock) return child;
+  return <pre>{children}</pre>;
+}
 
 // Keep the teaching articles concise while making every source manuscript available in full.
 const manuscripts = {
@@ -83,7 +150,10 @@ function Manuscript({ path }) {
       {content === null && !error && <p>원고를 여는 중입니다…</p>}
       {content !== null && (
         <div className="source-manuscript-body">
-          <ReactMarkdown remarkPlugins={[remarkGfm]} components={{ a: link }}>
+          <ReactMarkdown
+            remarkPlugins={[remarkGfm]}
+            components={{ a: link, code: MarkdownCode, pre: MarkdownPre }}
+          >
             {content}
           </ReactMarkdown>
         </div>
