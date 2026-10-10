@@ -452,7 +452,7 @@ export function ReadingArticle({ id }) {
                 </div>
               ))}
               <a className="article-lab-link" href={`/practice#${chapter.lab}`}>
-                게임형 실습에서 확인하기 ↗
+                실습에서 확인하기 ↗
               </a>
               <p className="try-it-ending">
                 자, 직접 따라 치면서 해 보세요! 눈으로만 보는 건 구경입니다.
