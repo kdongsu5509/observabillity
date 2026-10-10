@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import * as THREE from "three";
 import { sources } from "./content";
 import { ToolLearningPaths } from "./ToolLessonPage";
 
@@ -199,6 +200,251 @@ const layers = [
     refs: ["grafana", "explore", "alert", "kibana", "newrelic"],
   },
 ];
+
+const stackSceneNodes = [
+  {
+    id: "service",
+    label: "결혼 서비스",
+    role: "신호를 만드는 앱",
+    detail: "구조화 로그와 Actuator 메트릭, OpenTelemetry 트레이스를 내보냅니다.",
+    color: "#8ce3ce",
+    position: [-4.2, 0, 0],
+  },
+  {
+    id: "alloy",
+    label: "Alloy",
+    role: "수집·처리·전달",
+    detail: "로그·메트릭·트레이스를 받아 파싱하고 각 저장소로 전달합니다.",
+    color: "#f2c56b",
+    position: [-1.8, 0, 0],
+  },
+  {
+    id: "prometheus",
+    label: "Prometheus",
+    role: "메트릭 저장",
+    detail: "Alloy의 remote_write 샘플을 WAL과 TSDB에 저장하고 PromQL로 읽습니다.",
+    color: "#ff9f68",
+    position: [1.3, 1.45, 0],
+  },
+  {
+    id: "loki",
+    label: "Loki",
+    role: "로그 저장",
+    detail: "라벨로 스트림을 좁히고 로그 청크와 인덱스를 저장해 LogQL로 조회합니다.",
+    color: "#8eb8ff",
+    position: [1.3, 0, 0],
+  },
+  {
+    id: "tempo",
+    label: "Tempo",
+    role: "트레이스 저장",
+    detail: "OTLP 트레이스를 블록으로 보관하고 TraceQL과 trace ID로 찾습니다.",
+    color: "#c7a5ff",
+    position: [1.3, -1.45, 0],
+  },
+  {
+    id: "grafana",
+    label: "Grafana",
+    role: "조회·알림",
+    detail: "세 저장소의 쿼리를 한 화면에 연결하고 대시보드와 알림을 평가합니다.",
+    color: "#ff8f9f",
+    position: [4.2, 0, 0],
+  },
+];
+
+const stackSceneEdges = [
+  ["service", "alloy"],
+  ["alloy", "prometheus"],
+  ["alloy", "loki"],
+  ["alloy", "tempo"],
+  ["prometheus", "grafana"],
+  ["loki", "grafana"],
+  ["tempo", "grafana"],
+];
+
+function ToolStackScene() {
+  const mountRef = useRef(null);
+  const meshesRef = useRef(new Map());
+  const [selectedId, setSelectedId] = useState("alloy");
+  const selectedNode =
+    stackSceneNodes.find((node) => node.id === selectedId) || stackSceneNodes[1];
+
+  useEffect(() => {
+    const mount = mountRef.current;
+    if (!mount) return undefined;
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(32, 1, 0.1, 100);
+    camera.position.set(0, 0, 13);
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    renderer.setClearColor(0x000000, 0);
+    mount.appendChild(renderer.domElement);
+
+    const graph = new THREE.Group();
+    scene.add(graph);
+    scene.add(new THREE.AmbientLight(0xbcebdc, 2.4));
+    const keyLight = new THREE.DirectionalLight(0xffffff, 3.1);
+    keyLight.position.set(-3, 5, 8);
+    scene.add(keyLight);
+
+    const positions = new Map(
+      stackSceneNodes.map((node) => [node.id, new THREE.Vector3(...node.position)]),
+    );
+    const materialById = new Map();
+    const hitTargets = [];
+    stackSceneNodes.forEach((node) => {
+      const material = new THREE.MeshStandardMaterial({
+        color: node.color,
+        emissive: node.color,
+        emissiveIntensity: node.id === "alloy" ? 0.75 : 0.22,
+        roughness: 0.35,
+        metalness: 0.12,
+      });
+      materialById.set(node.id, material);
+      const mesh = new THREE.Mesh(new THREE.IcosahedronGeometry(0.48, 2), material);
+      mesh.position.copy(positions.get(node.id));
+      mesh.userData.id = node.id;
+      graph.add(mesh);
+      hitTargets.push(mesh);
+      meshesRef.current.set(node.id, mesh);
+      const ring = new THREE.Mesh(
+        new THREE.TorusGeometry(0.66, 0.018, 8, 48),
+        new THREE.MeshBasicMaterial({ color: node.color, transparent: true, opacity: 0.46 }),
+      );
+      ring.rotation.x = Math.PI / 2;
+      ring.position.copy(mesh.position);
+      ring.userData.nodeRing = node.id;
+      graph.add(ring);
+    });
+
+    const particles = [];
+    stackSceneEdges.forEach(([fromId, toId], edgeIndex) => {
+      const from = positions.get(fromId);
+      const to = positions.get(toId);
+      const geometry = new THREE.BufferGeometry().setFromPoints([from, to]);
+      graph.add(
+        new THREE.Line(
+          geometry,
+          new THREE.LineBasicMaterial({ color: 0x79cdb8, transparent: true, opacity: 0.42 }),
+        ),
+      );
+      for (let i = 0; i < 2; i += 1) {
+        const particle = new THREE.Mesh(
+          new THREE.SphereGeometry(0.065, 8, 8),
+          new THREE.MeshBasicMaterial({ color: 0xeafff5 }),
+        );
+        particle.userData = { from, to, offset: (edgeIndex * 0.17 + i * 0.5) % 1 };
+        graph.add(particle);
+        particles.push(particle);
+      }
+    });
+
+    const raycaster = new THREE.Raycaster();
+    const pointer = new THREE.Vector2();
+    const onPointerDown = (event) => {
+      const rect = renderer.domElement.getBoundingClientRect();
+      pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+      pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+      raycaster.setFromCamera(pointer, camera);
+      const [hit] = raycaster.intersectObjects(hitTargets);
+      if (hit?.object?.userData.id) setSelectedId(hit.object.userData.id);
+    };
+    renderer.domElement.addEventListener("pointerdown", onPointerDown);
+
+    const resize = () => {
+      const { width, height } = mount.getBoundingClientRect();
+      renderer.setSize(Math.max(width, 320), Math.max(height, 270), false);
+      camera.aspect = Math.max(width, 320) / Math.max(height, 270);
+      camera.updateProjectionMatrix();
+    };
+    const resizeObserver = new ResizeObserver(resize);
+    resizeObserver.observe(mount);
+    resize();
+
+    const clock = new THREE.Clock();
+    let frame;
+    const animate = () => {
+      const elapsed = clock.getElapsedTime();
+      graph.rotation.y = Math.sin(elapsed * 0.34) * 0.12;
+      graph.rotation.x = Math.cos(elapsed * 0.28) * 0.035;
+      graph.children.forEach((child) => {
+        if (child.userData.nodeRing) {
+          child.rotation.z = elapsed * 0.4;
+          child.scale.setScalar(1 + Math.sin(elapsed * 2 + child.position.x) * 0.04);
+        }
+      });
+      particles.forEach((particle) => {
+        const { from, to, offset } = particle.userData;
+        const progress = (elapsed * 0.28 + offset) % 1;
+        particle.position.lerpVectors(from, to, progress);
+      });
+      renderer.render(scene, camera);
+      frame = requestAnimationFrame(animate);
+    };
+    animate();
+
+    return () => {
+      cancelAnimationFrame(frame);
+      resizeObserver.disconnect();
+      renderer.domElement.removeEventListener("pointerdown", onPointerDown);
+      renderer.dispose();
+      graph.traverse((object) => {
+        object.geometry?.dispose();
+        if (Array.isArray(object.material)) object.material.forEach((item) => item.dispose());
+        else object.material?.dispose();
+      });
+      mount.removeChild(renderer.domElement);
+      meshesRef.current.clear();
+    };
+  }, []);
+
+  useEffect(() => {
+    meshesRef.current.forEach((mesh, id) => {
+      mesh.material.emissiveIntensity = id === selectedId ? 1.15 : 0.22;
+      mesh.scale.setScalar(id === selectedId ? 1.18 : 1);
+    });
+  }, [selectedId]);
+
+  return (
+    <div className="tool-stack-visual">
+      <div className="tool-stack-visual-head">
+        <div>
+          <span className="tool-stack-kicker">3D SIGNAL MAP</span>
+          <h3>신호가 만들어지고, 저장되고, 다시 만나는 길</h3>
+        </div>
+        <span>노드를 누르면 운영 포인트가 바뀝니다</span>
+      </div>
+      <div className="tool-stack-scene-shell">
+        <div
+          ref={mountRef}
+          className="tool-stack-scene"
+          role="img"
+          aria-label="결혼 서비스에서 Alloy를 거쳐 Prometheus, Loki, Tempo로 분기되고 Grafana로 모이는 3D 관측 흐름"
+        />
+        <div className="tool-stack-scene-legend" role="list" aria-label="관측 스택 구성 요소">
+          {stackSceneNodes.map((node) => (
+            <button
+              type="button"
+              key={node.id}
+              className={selectedId === node.id ? "is-active" : ""}
+              onClick={() => setSelectedId(node.id)}
+            >
+              <i style={{ backgroundColor: node.color }} aria-hidden="true" />
+              <span>{node.label}</span>
+              <small>{node.role}</small>
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className="tool-stack-scene-detail" aria-live="polite">
+        <span>{selectedNode.role}</span>
+        <strong>{selectedNode.label}</strong>
+        <p>{selectedNode.detail}</p>
+      </div>
+    </div>
+  );
+}
 
 function Docs({ ids }) {
   return (
@@ -408,19 +654,7 @@ export default function ToolGuide() {
             수집기가 데이터를 모으고, 신호마다 다른 저장소가 보관합니다.
             Grafana는 그 결과를 조회합니다. 어느 한 층이 비어도 조사가 끊깁니다.
           </p>
-          <div
-            className="guide-pipeline"
-            role="img"
-            aria-label="결혼 서비스에서 Alloy로, Prometheus Loki Tempo를 거쳐 Grafana로 조회"
-          >
-            <span>결혼 서비스</span>
-            <i>→</i>
-            <span>Alloy</span>
-            <i>→</i>
-            <span>Prometheus · Loki · Tempo</span>
-            <i>→</i>
-            <span>Grafana</span>
-          </div>
+          <ToolStackScene />
           <Docs ids={["alloy", "prom", "loki", "tempo", "grafana"]} />
           <div className="layer-list">
             {layers.map((layer, i) => (
