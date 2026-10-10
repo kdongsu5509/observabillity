@@ -30,7 +30,7 @@ function Header({ page }) {
           <a className={page === "tools" ? "active" : ""} href="/tools">
             도구
           </a>
-          <a href="/practice">게임형 실습</a>
+          <a href="/practice">실습</a>
           <span
             className="thanks-nav"
             onMouseEnter={() => setInfo(true)}
@@ -41,12 +41,12 @@ function Header({ page }) {
             }}
           >
             <a className={page === "thanks" ? "active" : ""} href="/thanks-to">
-              Thanks to
+              테코톡으로 보기
             </a>
             <button
               className="info"
               type="button"
-              aria-label="Thanks to 설명"
+              aria-label="테코톡으로 보기 설명"
               aria-expanded={info}
               onClick={() => setInfo((v) => !v)}
             >
@@ -69,7 +69,7 @@ function Thanks() {
   return (
     <div className="thanks-page">
       <div className="page-hero compact">
-        <span className="section-kicker">THANKS TO</span>
+        <span className="section-kicker">테코톡으로 보기</span>
         <h1>참고한 테코톡 영상 속 주인공들</h1>
         <p>
           주제별로 모았습니다. 카드를 누르면 원본 YouTube 영상으로 이동합니다.
@@ -142,7 +142,7 @@ export default function App() {
       <footer className="footer">
         <Logo />
         <span>로그 한 줄에서 장애 대응까지.</span>
-        <a href="/thanks-to">Thanks to ↗</a>
+        <a href="/thanks-to">테코톡으로 보기 ↗</a>
       </footer>
     </div>
   );
