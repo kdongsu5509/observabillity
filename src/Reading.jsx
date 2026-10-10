@@ -93,6 +93,11 @@ export function ReadingHome() {
     <div className="reading-home">
       <section className="reading-home-head">
         <div className="reading-eyebrow">OBSERVABILITY NOTES</div>
+        <h1>비비디 모니터링 서버 학습</h1>
+        <p>
+          00번 글부터 시간 순서로 읽습니다. 서버 한 대의 로그 파일에서 오늘의
+          관측 도구까지, 결혼 서비스의 문제를 하나씩 풀어 보세요.
+        </p>
         <p className="reading-home-note">비비디의 관측 가능성과 관련한 내용을 최대한 담아 보았습니다.</p>
       </section>
       <div className="read-list-head">
