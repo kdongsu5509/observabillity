@@ -105,3 +105,5 @@ export function SourceManuscripts({ id }) {
     </section>
   );
 }
+
+export default SourceManuscripts;
