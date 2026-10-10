@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { alternatives, sources } from "./content";
-import { ToolArchitectureGallery } from "./Architecture";
 import { ToolLearningPaths } from "./ToolLessonPage";
 
 const layers = [
@@ -423,7 +422,6 @@ export default function ToolGuide() {
             <span>Grafana</span>
           </div>
           <Docs ids={["alloy", "prom", "loki", "tempo", "grafana"]} />
-          <ToolArchitectureGallery />
           <div className="layer-list">
             {layers.map((layer, i) => (
               <article className="layer-card" key={layer.name}>
