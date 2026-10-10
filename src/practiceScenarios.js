@@ -1,192 +1,24 @@
-// Fixed, fictional telemetry keeps every exercise usable on a static host.
-export const practiceScenarios = [
-  {
-    id: "history",
-    title: "관측의 출발점",
-    source: "Loki",
-    language: "LogQL",
-    intro:
-      "결혼 정보 저장 실패를 알리는 로그를 찾아 보세요. 한 줄의 기록에서 조사를 시작합니다.",
-    query: '{service_name="bibbidi-backend"} |= "상담 저장 실패"',
-    checks: ["service_name", "상담 저장 실패"],
-    result: [
-      "14:02:11  ERROR  상담 저장 실패 wedding_id=W-1042 trace_id=7d9c2f",
-      "14:02:13  ERROR  상담 저장 실패 wedding_id=W-1043 trace_id=8a1e40",
-    ],
-    question: "이 기록만으로 바로 알기 어려운 것은?",
-    choices: ["실패한 결혼 정보 ID", "전체 요청 중 실패 비율", "실패가 기록된 시각"],
-    answer: 1,
-    explanation:
-      "로그는 개별 사건을 자세히 보여 줍니다. 실패 비율은 전체 요청 수와 실패 수를 메트릭으로 비교해야 합니다.",
-  },
-  {
-    id: "logging",
-    title: "로그에서 오류 찾기",
-    source: "Loki",
-    language: "LogQL",
-    intro:
-      "운영 서비스의 오류 로그만 좁혀 보고, 같은 요청의 trace ID를 찾습니다.",
-    query:
-      '{service_name="bibbidi-backend", deployment_environment_name="production"} | severity_text="ERROR"',
-    checks: ["service_name", "production", "ERROR"],
-    result: [
-      "14:02:11  ERROR  상담 승인 요청 실패  status=502  trace_id=7d9c2f",
-      "14:02:13  ERROR  상담 승인 요청 실패  status=502  trace_id=8a1e40",
-    ],
-    question: "두 로그를 같은 요청의 기록으로 묶을 때 가장 유용한 값은?",
-    choices: ["service_name", "trace_id", "severity_text"],
-    answer: 1,
-    explanation:
-      "trace_id는 요청 하나를 따라가는 식별자입니다. 서비스 이름과 로그 수준은 여러 요청에서 같을 수 있습니다.",
-  },
-  {
-    id: "metrics",
-    title: "요청률과 오류율",
-    source: "Prometheus",
-    language: "PromQL",
-    intro:
-      "최근 5분의 서버 오류 요청률을 조회해 이상이 시작된 시간을 확인합니다.",
-    query: 'sum(rate(http_server_requests_seconds_count{status=~"5.."}[5m]))',
-    checks: ["rate(", "http_server_requests_seconds_count", "5..", "[5m]"],
-    result: [
-      "14:00  0.1 req/s",
-      "14:02  2.4 req/s",
-      "14:04  3.1 req/s",
-      "14:06  0.2 req/s",
-    ],
-    question: "오류 요청률이 갑자기 상승한 구간을 찾았다면 다음에 무엇을 해야 할까요?",
-    choices: ["같은 시간대의 로그와 트레이스 확인", "대시보드 색상 변경", "수집 간격을 무조건 늘리기"],
-    answer: 0,
-    explanation:
-      "오류율이 오른 시각의 로그와 트레이스를 이어 보면 실패한 요청과 느린 구간을 좁힐 수 있습니다.",
-  },
-  {
-    id: "trace",
-    title: "느린 구간 따라가기",
-    source: "Tempo",
-    language: "TraceQL",
-    intro:
-      "상담 요청의 트레이스를 찾아 어느 구간에서 시간이 늘었는지 확인합니다.",
-    query:
-      '{ resource.service.name = "bibbidi-backend" && span.http.response.status_code >= 500 }',
-    checks: ["resource.service.name", "bibbidi-backend", "500"],
-    result: [
-      "POST /api/wedding-profiles       3,020 ms",
-      "  ├─ validateWeddingProfile       18 ms",
-      "  ├─ partnerCalendar    2,801 ms  ERROR",
-      "  └─ saveWeddingProfile            64 ms",
-    ],
-    question: "가장 먼저 조사할 구간은?",
-    choices: ["validateWeddingProfile", "partnerCalendar", "saveWeddingProfile"],
-    answer: 1,
-    explanation:
-      "partnerCalendar가 요청 시간의 대부분을 차지하고 오류도 표시됩니다. 해당 구간의 로그를 확인해 이유를 좁힙니다.",
-  },
-  {
-    id: "transport",
-    title: "수집 경로 점검",
-    source: "Prometheus",
-    language: "PromQL",
-    intro:
-      "대상이 정상적으로 스크레이프되는지 확인합니다. 값 1은 성공, 0은 실패입니다.",
-    query: 'up{job="bibbidi-backend"}',
-    checks: ["up{", "bibbidi-backend"],
-    result: [
-      "bibbidi-backend / production    up = 1",
-      "bibbidi-backend / staging       up = 0",
-    ],
-    question: "staging 메트릭이 비었다면 먼저 확인할 것은?",
-    choices: [
-      "스크레이프 대상과 연결 상태",
-      "Grafana 패널 색상",
-      "로그 보관 기간",
-    ],
-    answer: 0,
-    explanation:
-      "up=0이면 수집 대상에 접근하지 못했습니다. 쿼리나 패널보다 대상 주소와 네트워크 연결을 먼저 확인합니다.",
-  },
-  {
-    id: "stack",
-    title: "세 신호 함께 보기",
-    source: "Loki",
-    language: "LogQL",
-    intro: "메트릭에서 찾은 오류 시간대의 로그를 열고 trace ID를 찾아 보세요.",
-    query: '{service_name="bibbidi-backend"} | severity_text="ERROR"',
-    checks: ["service_name", "ERROR"],
-    result: [
-      "14:02:11  ERROR  partner calendar timeout  trace_id=7d9c2f",
-      "14:02:13  ERROR  partner calendar timeout  trace_id=8a1e40",
-    ],
-    question: "이제 요청 내부의 지연 구간을 볼 도구는?",
-    choices: ["Tempo", "Prometheus", "Alloy"],
-    answer: 0,
-    explanation:
-      "Tempo에서 trace_id로 요청 하나의 span을 볼 수 있습니다. Prometheus는 전체 추세, Loki는 사건 로그를 보여 줍니다.",
-  },
-  {
-    id: "alerting",
-    title: "오류 알림 판단",
-    source: "Prometheus",
-    language: "PromQL",
-    intro:
-      "5분 동안 서버 오류가 2건 이상이면 담당자에게 알리는 규칙을 검토합니다.",
-    query:
-      'sum(increase(http_server_requests_seconds_count{status=~"5.."}[5m])) or vector(0)',
-    checks: ["increase(", "http_server_requests_seconds_count", "5..", "[5m]"],
-    result: [
-      "14:00  0건  Normal",
-      "14:02  3건  Pending",
-      "14:04  5건  Alerting",
-    ],
-    question: "오류가 기준 이상으로 계속되면 어떤 상태가 되어야 할까요?",
-    choices: ["Normal", "Pending", "Alerting"],
-    answer: 2,
-    explanation:
-      "기준을 넘긴 상태가 대기 시간 동안 이어지면 Alerting이 됩니다. 실제 규칙은 대기 시간과 No Data 처리도 정해야 합니다.",
-  },
-  {
-    id: "performance",
-    title: "부하와 지연 비교",
-    source: "Prometheus",
-    language: "PromQL",
-    intro: "부하가 커질 때 p95 응답 시간이 어떻게 변했는지 확인합니다.",
-    query:
-      "histogram_quantile(0.95, sum by (le) (rate(http_server_requests_seconds_bucket[5m])))",
-    checks: ["histogram_quantile(", "0.95", "_bucket", "rate("],
-    result: [
-      "50 req/s   p95 180 ms   errors 0%",
-      "100 req/s  p95 320 ms   errors 0.2%",
-      "200 req/s  p95 910 ms   errors 4.8%",
-    ],
-    question: "p95가 목표 500ms를 넘는 구간에서 함께 확인할 것은?",
-    choices: ["글꼴 크기", "오류율과 포화 지표", "로그 보관 정책만"],
-    answer: 1,
-    explanation:
-      "지연이 증가하는 시점에 오류율과 포화 지표를 함께 보고, 느린 트레이스로 병목을 찾습니다.",
-  },
-  {
-    id: "incident",
-    title: "장애 원인 좁히기",
-    source: "Loki",
-    language: "LogQL",
-    intro:
-      "상담 저장 오류가 증가한 시간의 로그를 조회하고 다음 조사 위치를 정합니다.",
-    query:
-      '{service_name="bibbidi-backend", deployment_environment_name="production"} | severity_text=~"(?i)error"',
-    checks: ["service_name", "production", "error"],
-    result: [
-      "14:02:11  ERROR  partner calendar timeout  trace_id=7d9c2f",
-      "14:02:13  ERROR  partner calendar timeout  trace_id=8a1e40",
-      "14:03:05  INFO   retry succeeded          trace_id=7d9c2f",
-    ],
-    question: "원인 후보를 더 좁힐 다음 행동은?",
-    choices: [
-      "trace_id=7d9c2f의 트레이스를 열어 지연 구간 확인",
-      "로그 색상을 바꾸기",
-      "오류율 패널 삭제",
-    ],
-    answer: 0,
-    explanation:
-      "같은 trace ID의 트레이스로 상담 제공자 호출 시간과 실패 상태를 확인하고, 복구 뒤 메트릭이 회복됐는지 검증합니다.",
-  },
+const rows = [
+  ["c1","C1 · 500 반복","Prometheus",'sum(increase(http_server_requests_seconds_count{deployment_environment_name="production", status=~"5.."}[5m]))',"5분 안에 5xx가 2건 이상이면 어떤 등급인가요?",["Critical","Warning","정상"],"C1은 5분 동안 5xx가 2건 이상 반복될 때 Critical입니다.","반복되는 5xx를 Critical로 판정합니다.","5분 increase가 2건 이상인지 확인하세요."],
+  ["c2","C2 · backend 수집 실패","Prometheus",'up{job="bibbidi-backend", deployment_environment_name="production"}',"값이 0이면 가장 먼저 확인할 것은?",["backend 프로세스와 Alloy 스크레이프 경로","패널 색상","로그 보관 기간"],"C2는 backend 또는 수집 경로 장애입니다.","backend 수집 상태를 확인합니다.","Prometheus의 up 값이 0인지 확인하세요."],
+  ["c3","C3 · nginx 게이트웨이 오류","Loki",'{service_name="nginx", deployment_environment_name="production"} |= "502"',"nginx 502 다음으로 확인할 것은?",["backend health와 upstream 연결","Grafana 로그인","Tempo 보관 기간"],"C3는 backend 앞단의 게이트웨이 오류입니다.","nginx 게이트웨이 오류를 찾습니다.","Loki에서 nginx와 502를 좁혀 보세요."],
+  ["c4","C4 · 디스크 90%","Prometheus",'disk_usage_ratio{deployment_environment_name="production"}',"디스크 90%의 위험은?",["로그와 DB 쓰기 실패","trace_id 중복","탭 전환 실패"],"C4는 디스크 고갈 직전 상태입니다.","호스트 디스크 고갈을 판단합니다.","disk 사용률을 90%와 비교하세요."],
+  ["c5","C5 · Hikari 포화","Prometheus",'hikaricp_connections_pending{deployment_environment_name="production"}',"대기 커넥션 3개 이상이면?",["DB 커넥션 풀 포화","Loki 라벨 오타","EC2 DNS 캐시"],"C5는 Hikari 커넥션 풀 포화입니다.","DB 커넥션 풀 포화를 판단합니다.","pending과 active/max를 비교하세요."],
+  ["c6","C6 · 힙 고갈 직전","Prometheus",'jvm_gc_live_data_ratio{deployment_environment_name="production"}',"GC 직후 80% 초과라면?",["OOM과 긴 GC","수집 주기 증가","nginx 재시작"],"C6는 GC 이후 live data가 max의 80%를 넘는 상태입니다.","JVM 고갈 위험을 판단합니다.","live data와 max data의 비율을 보세요."],
+  ["w1","W1 · 500 발생","Prometheus",'sum(increase(http_server_requests_seconds_count{deployment_environment_name="production", status=~"5.."}[5m]))',"5분 안에 5xx 1건 이상이면?",["Warning","Critical","정상"],"W1은 단일 500 발생입니다.","단일 500을 감지합니다.","increase가 0보다 큰지 확인하세요."],
+  ["w2","W2 · API p95 지연","Prometheus",'histogram_quantile(0.95, sum by (le) (rate(http_server_requests_seconds_bucket{deployment_environment_name="production"}[5m])))',"API p95 1초 초과 다음 조사는?",["느린 서버 span과 DB·외부 호출","로그 색상","EC2 이름"],"W2는 일반 API p95 지연입니다.","일반 API 지연을 확인합니다.","p95에서 1초 초과 시각을 찾으세요."],
+  ["w3","W3 · 소셜 로그인 p95","Tempo",'{ resource.service.name = "bibbidi-backend" && resource.deployment.environment.name = "production" && span.http.response.status_code >= 500 }',"소셜 로그인 지연에서 볼 외부 구간은?",["Kakao·Google OAuth callback","Prometheus scrape","Loki retention"],"W3는 소셜 로그인 callback 지연입니다.","OAuth callback 지연을 추적합니다.","callback과 OAuth span을 확인하세요."],
+  ["w4","W4 · ERROR 로그","Loki",'{service_name="bibbidi-backend", deployment_environment_name="production"} | severity_text="ERROR"',"ERROR 로그에서 연결할 식별자는?",["trace_id","패널 ID","데이터소스 UID"],"W4는 ERROR 로그를 trace_id로 연결합니다.","backend ERROR에서 요청을 찾습니다.","로그의 trace_id를 클릭하세요."],
+  ["w5","W5 · OIDC 공개 키 갱신","Loki",'{service_name="bibbidi-backend", deployment_environment_name="production"} |= "OIDC public key refresh failed"',"영향받을 기능은?",["소셜 로그인","정적 CSS","메트릭 scrape"],"OIDC 공개 키 갱신 실패는 로그인 검증에 영향을 줍니다.","OIDC 갱신 실패를 확인합니다.","scope_name과 provider 로그를 찾으세요."],
+  ["w6","W6 · 디스크 80%","Prometheus",'disk_usage_ratio{deployment_environment_name="production"}',"디스크 80%는?",["C4 전조","즉시 정상","Tempo 장애"],"W6는 디스크 고갈 전조입니다.","디스크 고갈 전조를 확인합니다.","현재 사용률과 90%를 비교하세요."],
+  ["w7","W7 · Loki 수집 거부","Prometheus",'loki_discarded_samples_total{deployment_environment_name="production"}',"무엇이 누락될 수 있나요?",["로그 일부","Prometheus 전체","Tempo 전체"],"W7은 Loki가 버린 로그를 감지합니다.","로그 수집 손실을 확인합니다.","discarded samples 증가를 보세요."],
+  ["w8","W8 · Hikari 대기","Prometheus",'hikaricp_connections_pending{deployment_environment_name="production"}',"대기 1개 이상이면?",["DB 상태와 느린 쿼리","nginx TLS만","Grafana 테마"],"W8은 Hikari 대기 전조입니다.","DB 커넥션 대기를 확인합니다.","pending이 1 이상인지 확인하세요."],
+  ["w9","W9 · 힙 사용률","Prometheus",'jvm_memory_used_ratio{deployment_environment_name="production"}',"힙 75% 초과에서 추적할 것은?",["GC 일시정지와 최근 배포","nginx access log","대시보드 링크"],"W9는 heap 사용률 75% 초과입니다.","JVM 힙 증가를 확인합니다.","heap 기준과 GC pause를 함께 보세요."],
 ];
+const sourceName = source => source === "Prometheus" ? "PromQL" : source === "Loki" ? "LogQL" : "TraceQL";
+export const practiceScenarios = rows.map(([id,title,source,query,question,choices,explanation,goal,hint]) => ({
+  id,title,source,language:sourceName(source),query,question,choices,answer:0,explanation,
+  goal: (id.startsWith("c") ? "Critical: " : "Warning: ") + goal,
+  hint,
+  intro: (id.startsWith("c") ? "Critical 미션: " : "Warning 미션: ") + title + " 상태를 확인합니다.",
+}));

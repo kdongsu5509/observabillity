@@ -707,7 +707,8 @@ function ArchitectureThree({ tool, active, setActive }) {
     if (!mount) return undefined;
     const layout = architectureLayouts[tool.id];
     const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(25, 1, 0.1, 100);
+    // Keep this as a readable flow chart: orthographic projection prevents labels from shrinking with depth.
+    const camera = new THREE.OrthographicCamera(-6, 6, 2.45, -2.45, 0.1, 100);
     camera.position.set(0, 0, 14);
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -719,7 +720,6 @@ function ArchitectureThree({ tool, active, setActive }) {
     scene.add(graph);
     const point = (x, y, z = 0) => new THREE.Vector3((x / 1040 - 0.5) * 11.8, (0.5 - y / layout.height) * 4.1, z);
     const nodePoint = (index) => point(layout.nodes[index].x + 78, layout.nodes[index].y + 45, 0.18);
-    const textureLoader = new THREE.TextureLoader();
     const disposableTextures = [];
     const hitTargets = [];
 
@@ -732,14 +732,14 @@ function ArchitectureThree({ tool, active, setActive }) {
       ];
       graph.add(new THREE.LineLoop(
         new THREE.BufferGeometry().setFromPoints(corners),
-        new THREE.LineBasicMaterial({ color: 0x9bb5b0, transparent: true, opacity: 0.52 }),
+        new THREE.LineBasicMaterial({ color: 0x83a99c, transparent: true, opacity: 0.72 }),
       ));
       const zoneLabel = new THREE.Sprite(new THREE.SpriteMaterial({
         map: (() => { const t = makeArchitectureLabel(zone.label, "#56746c", 26); disposableTextures.push(t); return t; })(),
         transparent: true,
       }));
       zoneLabel.position.copy(point(zone.x + 18, zone.y + 22, -0.1));
-      zoneLabel.scale.set(1.7, 0.22, 1);
+      zoneLabel.scale.set(2.2, 0.27, 1);
       graph.add(zoneLabel);
     });
 
@@ -749,15 +749,15 @@ function ArchitectureThree({ tool, active, setActive }) {
       const from = centerPoint(edge.from);
       const to = centerPoint(edge.to);
       const geometry = new THREE.BufferGeometry().setFromPoints([from, to]);
-      const line = new THREE.Line(geometry, new THREE.LineBasicMaterial({ color: 0x6b8a85, transparent: true, opacity: 0.68 }));
+      const line = new THREE.Line(geometry, new THREE.LineBasicMaterial({ color: 0x2e9b83, transparent: true, opacity: 0.86 }));
       graph.add(line);
       edgeObjects.push({ from, to });
       const labelTexture = makeArchitectureLabel(edge.label, "#56746c", 22);
       disposableTextures.push(labelTexture);
       const label = new THREE.Sprite(new THREE.SpriteMaterial({ map: labelTexture, transparent: true }));
       label.position.lerpVectors(from, to, 0.5);
-      label.position.y += 0.18;
-      label.scale.set(1.3, 0.16, 1);
+      label.position.y += 0.22;
+      label.scale.set(1.8, 0.22, 1);
       graph.add(label);
     });
 
@@ -766,38 +766,29 @@ function ArchitectureThree({ tool, active, setActive }) {
       nodeGroup.position.copy(nodePoint(index));
       graph.add(nodeGroup);
       const hit = new THREE.Mesh(
-        new THREE.BoxGeometry(1.72, 0.82, 0.24),
+        new THREE.BoxGeometry(1.92, 0.94, 0.28),
         new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false }),
       );
       hit.userData.index = index;
       nodeGroup.add(hit);
       hitTargets.push(hit);
       const frame = new THREE.LineSegments(
-        new THREE.EdgesGeometry(new THREE.BoxGeometry(1.72, 0.82, 0.24)),
-        new THREE.LineBasicMaterial({ color: 0x2a8f7c, transparent: true, opacity: index === active ? 0.98 : 0.26 }),
+        new THREE.EdgesGeometry(new THREE.BoxGeometry(1.92, 0.94, 0.28)),
+        new THREE.LineBasicMaterial({ color: index === active ? 0x0a9f82 : 0x6f9b8d, transparent: true, opacity: index === active ? 1 : 0.58 }),
       );
       nodeGroup.add(frame);
-      const logoTexture = textureLoader.load(architectureLogoByTool[tool.id]);
-      logoTexture.colorSpace = THREE.SRGBColorSpace;
-      disposableTextures.push(logoTexture);
-      const logo = new THREE.Sprite(
-        new THREE.SpriteMaterial({ map: logoTexture, transparent: true, depthTest: true }),
-      );
-      logo.scale.set(0.42, 0.42, 1);
-      logo.position.set(-0.52, 0.02, 0.15);
-      nodeGroup.add(logo);
-      const labelTexture = makeArchitectureLabel(node.label, "#18384b", 29);
+      const labelTexture = makeArchitectureLabel(node.label, "#123b4f", 38);
       disposableTextures.push(labelTexture);
       const label = new THREE.Sprite(new THREE.SpriteMaterial({ map: labelTexture, transparent: true }));
-      label.position.set(0.12, 0.02, 0.15);
-      label.scale.set(1.35, 0.18, 1);
+      label.position.set(0, 0.02, 0.15);
+      label.scale.set(1.82, 0.24, 1);
       nodeGroup.add(label);
       nodeRefs.current.set(index, nodeGroup);
       frameRefs.current.set(index, frame);
     });
 
     const packets = edgeObjects.map(({ from, to }, index) => {
-      const packet = new THREE.Mesh(new THREE.SphereGeometry(0.055, 8, 8), new THREE.MeshBasicMaterial({ color: 0x197f70 }));
+      const packet = new THREE.Mesh(new THREE.SphereGeometry(0.075, 10, 10), new THREE.MeshBasicMaterial({ color: 0x0bb891 }));
       packet.userData = { from, to, offset: index * 0.21 };
       graph.add(packet);
       return packet;
@@ -816,8 +807,15 @@ function ArchitectureThree({ tool, active, setActive }) {
 
     const resize = () => {
       const { width, height } = mount.getBoundingClientRect();
-      renderer.setSize(Math.max(width, 640), Math.max(height, 300), false);
-      camera.aspect = Math.max(width, 640) / Math.max(height, 300);
+      const viewportWidth = Math.max(width, 640);
+      const viewportHeight = Math.max(height, 300);
+      renderer.setSize(viewportWidth, viewportHeight, false);
+      const aspect = viewportWidth / viewportHeight;
+      const viewHeight = 4.9;
+      camera.top = viewHeight / 2;
+      camera.bottom = -viewHeight / 2;
+      camera.left = (-viewHeight * aspect) / 2;
+      camera.right = (viewHeight * aspect) / 2;
       camera.updateProjectionMatrix();
     };
     const resizeObserver = new ResizeObserver(resize);

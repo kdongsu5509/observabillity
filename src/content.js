@@ -140,6 +140,10 @@ export const sources = {
     "Tempo 아키텍처",
     "https://grafana.com/docs/tempo/latest/introduction/architecture/",
   ],
+  tempostorage: [
+    "Tempo 객체 저장소",
+    "https://grafana.com/docs/tempo/latest/reference-tempo-architecture/object-storage/",
+  ],
   fluentbit: ["Fluent Bit 매뉴얼", "https://docs.fluentbit.io/manual"],
   datadog: ["Datadog APM", "https://docs.datadoghq.com/tracing/"],
   datadogmetrics: ["Datadog Metrics", "https://docs.datadoghq.com/metrics/"],
@@ -309,6 +313,22 @@ export const sources = {
   alloybatch: [
     "Alloy otelcol.processor.batch",
     "https://grafana.com/docs/alloy/latest/reference/components/otelcol/otelcol.processor.batch/",
+  ],
+  alloysourcefile: [
+    "Alloy loki.source.file",
+    "https://grafana.com/docs/alloy/latest/reference/components/loki/loki.source.file/",
+  ],
+  alloyotlpexporter: [
+    "Alloy otelcol.exporter.otlp",
+    "https://grafana.com/docs/alloy/latest/reference/components/otelcol/otelcol.exporter.otlp/",
+  ],
+  alloyotlphttpexporter: [
+    "Alloy otelcol.exporter.otlphttp",
+    "https://grafana.com/docs/alloy/latest/reference/components/otelcol/otelcol.exporter.otlphttp/",
+  ],
+  alloycomponentmetrics: [
+    "Alloy 컴포넌트 메트릭",
+    "https://grafana.com/docs/alloy/latest/troubleshoot/component_metrics/",
   ],
 
   promfaq: ["Prometheus FAQ", "https://prometheus.io/docs/introduction/faq/"],
@@ -535,6 +555,10 @@ export const sources = {
   grafanagithub: [
     "Grafana GitHub OAuth",
     "https://grafana.com/docs/grafana/latest/setup-grafana/configure-access/configure-authentication/github/",
+  ],
+  grafanaoauth: [
+    "Grafana Generic OAuth 설정",
+    "https://grafana.com/docs/grafana/latest/setup-grafana/configure-access/configure-authentication/generic-oauth/",
   ],
   grafanabackup: [
     "Grafana 백업",
@@ -990,6 +1014,52 @@ log.error("카카오 토큰 요청 실패 code={}", code, e);   // e 는 스택 
       },
     ],
     takeaway: "MDC는 요청의 값을 보관하고, ECS는 로그 이벤트의 필드 모양을 정하며, 구조화 로거가 둘을 한 줄의 JSON으로 연결합니다.",
+    lab: "logging",
+  },
+  {
+    id: "ecs-to-signals",
+    number: "02A",
+    title: "ECS JSON은 어떻게 Loki·Prometheus·Tempo에 도착할까",
+    lead: "같은 HTTP 요청에서 나온 로그·메트릭·트레이스가 세 저장소에 각자 만들어지고, trace_id로 다시 연결되는 과정을 따라갑니다.",
+    tags: ["ECS", "Loki", "Prometheus", "Tempo", "OpenTelemetry"],
+    flow: ["HTTP 요청과 계측", "ECS 로그 · Micrometer 메트릭 · OTel span", "Alloy가 신호별 전달", "Loki · Prometheus · Tempo", "Grafana에서 연결 조사"],
+    sections: [
+      {
+        title: "먼저 오해부터 풀기: JSON이 세 저장소로 변환되는 건 아닙니다",
+        text: "ECS JSON은 로그 한 건의 모양과 필드 이름을 정합니다. 이 JSON 한 줄이 Prometheus 메트릭이나 Tempo span으로 자동 변환되지는 않습니다. 애플리케이션은 로그 이벤트를 출력하고, Micrometer 계측은 메트릭을 기록하며, Micrometer Tracing/OpenTelemetry 계측은 trace와 span을 별도로 만듭니다. 한 HTTP 요청이라는 공통 사건을 각각 다른 모양으로 기록하는 것입니다.",
+        refs: ["ecs", "otel", "metrics", "tracing"],
+      },
+      {
+        title: "예시 요청 하나: 결혼 정보 저장 실패",
+        text: "클라이언트가 POST /api/weddings/42를 호출했는데 서버가 500을 돌려줬다고 해 봅시다. 같은 요청을 조사할 수 있도록 로그에는 사건과 trace_id를, 메트릭에는 요청 수·상태·소요 시간을, 트레이스에는 요청 안에서 실행된 작업과 부모·자식 관계를 남깁니다. 세 데이터의 목적은 서로 다르지만 trace_id와 시간·서비스가 겹치는 연결 고리가 됩니다.",
+        code: `// 로그 한 건의 예시: ECS 계열 JSON 필드 + 요청 문맥\n{\n  "@timestamp": "2026-10-10T14:32:08.613Z",\n  "log.level": "ERROR",\n  "message": "wedding profile save failed",\n  "service.name": "bibbidi-api",\n  "traceId": "4bf92f…",\n  "spanId": "00f067…",\n  "http.request.method": "POST",\n  "url.path": "/api/weddings/42",\n  "http.response.status_code": 500\n}`,
+        refs: ["ecs", "springstructured", "tracing"],
+      },
+      {
+        title: "Loki에는 사건 한 줄이 로그 엔트리로 들어갑니다",
+        text: "앱이 stdout에 JSON을 쓰면 Alloy가 읽어 Loki로 전달합니다. Loki는 시각과 로그 본문을 저장하고, 검색을 빠르게 시작할 낮은 카디널리티의 라벨(예: service_name, environment)을 인덱싱합니다. traceId, spanId, weddingId, 요청별 URL처럼 계속 달라지는 값은 라벨로 만들지 말고 JSON 본문이나 지원되는 structured metadata에 둡니다. 그러면 서비스와 시간으로 로그를 좁힌 뒤 trace_id를 검색할 수 있습니다.",
+        code: `{service_name="bibbidi-api", environment="production"}\n  | json\n  | traceId="4bf92f…"`,
+        refs: ["alloypipe", "lokilabel", "lokimetadata", "logql"],
+      },
+      {
+        title: "Prometheus에는 개별 JSON 대신 집계 가능한 숫자가 쌓입니다",
+        text: "요청 계측 코드는 각 요청이 끝날 때 카운터와 타이머를 갱신합니다. Prometheus는 앱의 /actuator/prometheus 같은 엔드포인트를 주기적으로 scrape해 누적 카운터와 히스토그램 샘플을 시계열로 저장합니다. 아래는 개념 예시입니다. 전체 요청의 증가율·오류율·지연 분포를 보는 데이터이며 JSON 로그 한 줄을 세어 자동 생성한 값이 아닙니다. 요청 ID나 trace_id를 라벨에 넣으면 시계열이 요청마다 늘어나므로 피합니다.",
+        code: `# 개념 예시: 요청 수를 낮은 카디널리티 라벨로 집계\nhttp_server_requests_seconds_count{\n  method="POST", uri="/api/weddings/{id}", status="500"\n}\n\n# 최근 5분 동안의 초당 실패 요청 증가율\nrate(http_server_requests_seconds_count{status="500"}[5m])`,
+        refs: ["micrometer", "metrics", "prom", "promql", "cardinality"],
+      },
+      {
+        title: "Tempo에는 trace 안의 작업 구간(span)이 들어갑니다",
+        text: "트레이싱 계측은 요청을 처리하는 서버 span을 만들고, DB 호출이나 다른 서비스 호출 같은 작업에도 자식 span을 만들 수 있습니다. 각 span에는 trace_id, span_id, 부모 span, 시작 시각, 지속 시간, 상태와 속성이 들어갑니다. OpenTelemetry SDK 또는 Spring의 Micrometer Tracing이 만든 trace를 OTLP로 Alloy에 보내면 Alloy가 Tempo로 전달합니다. JSON 로그가 span으로 바뀌는 것이 아니라 각자 생성된 trace와 로그가 같은 trace_id를 공유해 연결됩니다.",
+        code: `trace_id: 4bf92f…\n└─ SERVER POST /api/weddings/{id}  (전체 420 ms, status=500)\n   ├─ INTERNAL validate-profile     (12 ms)\n   └─ CLIENT db.save-wedding        (380 ms, error)`,
+        refs: ["tracing", "otel", "otlp", "tempo", "alloypipe"],
+      },
+      {
+        title: "Grafana에서는 질문에 맞는 저장소부터 열고 연결합니다",
+        text: "‘실패가 늘었나?’는 Prometheus에서 서비스·상태별 증가율을 보고, ‘이 로그에서 무슨 일이 있었나?’는 Loki에서 한 요청의 JSON 로그를 봅니다. 로그의 trace_id를 따라 Tempo를 열면 해당 요청의 span 시간선과 실패한 DB 작업을 확인할 수 있습니다. 반대로 Tempo span에서 같은 trace의 로그를 찾을 수도 있습니다. 이 연결에는 세 저장소의 데이터 소스와 Grafana의 trace/log 상관관계 설정이 맞아야 합니다.",
+        refs: ["explore", "tracetologs", "tracetometrics", "grafana"],
+      },
+    ],
+    takeaway: "ECS JSON은 로그의 형식입니다. 메트릭과 span은 앱의 별도 계측이 만들며, trace_id 같은 문맥과 Grafana 연결 설정이 세 신호를 한 요청의 조사 흐름으로 묶습니다.",
     lab: "logging",
   },
   {

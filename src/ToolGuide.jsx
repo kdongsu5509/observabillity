@@ -1,5 +1,4 @@
-import { useEffect, useRef, useState } from "react";
-import * as THREE from "three";
+import { useState } from "react";
 import { sources } from "./content";
 import { ToolLearningPaths } from "./ToolLessonPage";
 
@@ -191,297 +190,15 @@ const layers = [
         ref: "newrelic",
       },
     ],
-    why: "저장소를 데이터 소스로 연결해 같은 시간대의 숫자·로그·트레이스를 조사하려고 씁니다.",
+    why: "저장소를 연결해 숫자·로그·트레이스를 조사하고, OAuth 제공자와 로그인도 연동할 수 있습니다.",
     choose: "여러 데이터 소스를 한 화면에서 조회하고 대시보드와 알림을 만들 때",
     reconsider:
       "단일 제품에 데이터 수집부터 조회까지 묶거나 다른 제품의 기존 운영 화면을 유지할 때",
     check:
       "대시보드 화면과 별도로 알림 규칙의 평가 조건과 연락처를 점검하세요.",
-    refs: ["grafana", "explore", "alert", "kibana", "newrelic"],
+    refs: ["grafana", "explore", "alert", "grafanaoauth", "kibana", "newrelic"],
   },
 ];
-
-const stackSceneNodes = [
-  {
-    id: "service",
-    label: "결혼 서비스",
-    role: "신호를 만드는 앱",
-    detail: "구조화 로그와 Actuator 메트릭, OpenTelemetry 트레이스를 내보냅니다.",
-    color: "#8ce3ce",
-    logo: "/logos/spring-boot.svg",
-    containerLogo: "/logos/ec2.png",
-    position: [-4.2, 0, 0],
-  },
-  {
-    id: "alloy",
-    label: "Alloy",
-    role: "수집·처리·전달",
-    detail: "로그·메트릭·트레이스를 받아 파싱하고 각 저장소로 전달합니다.",
-    color: "#f2c56b",
-    logo: "/logos/alloy.svg",
-    position: [-1.8, 0, 0],
-  },
-  {
-    id: "prometheus",
-    label: "Prometheus",
-    role: "메트릭 저장",
-    detail: "Alloy의 remote_write 샘플을 WAL과 TSDB에 저장하고 PromQL로 읽습니다.",
-    color: "#ff9f68",
-    logo: "/logos/prometheus.svg",
-    position: [1.3, 1.45, 0],
-  },
-  {
-    id: "loki",
-    label: "Loki",
-    role: "로그 저장",
-    detail: "라벨로 스트림을 좁히고 로그 청크와 인덱스를 저장해 LogQL로 조회합니다.",
-    color: "#8eb8ff",
-    logo: "/logos/loki.svg",
-    position: [1.3, 0, 0],
-  },
-  {
-    id: "tempo",
-    label: "Tempo",
-    role: "트레이스 저장",
-    detail: "OTLP 트레이스를 블록으로 보관하고 TraceQL과 trace ID로 찾습니다.",
-    color: "#c7a5ff",
-    logo: "/logos/tempo.svg",
-    position: [1.3, -1.45, 0],
-  },
-  {
-    id: "grafana",
-    label: "Grafana",
-    role: "조회·알림",
-    detail: "세 저장소의 쿼리를 한 화면에 연결하고 대시보드와 알림을 평가합니다.",
-    color: "#ff8f9f",
-    logo: "/logos/grafana.svg",
-    position: [4.2, 0, 0],
-  },
-];
-
-const stackSceneEdges = [
-  ["service", "alloy"],
-  ["alloy", "prometheus"],
-  ["alloy", "loki"],
-  ["alloy", "tempo"],
-  ["prometheus", "grafana"],
-  ["loki", "grafana"],
-  ["tempo", "grafana"],
-];
-
-function ToolStackScene() {
-  const mountRef = useRef(null);
-  const meshesRef = useRef(new Map());
-  const framesRef = useRef(new Map());
-  const [selectedId, setSelectedId] = useState("alloy");
-  const selectedNode =
-    stackSceneNodes.find((node) => node.id === selectedId) || stackSceneNodes[1];
-
-  useEffect(() => {
-    const mount = mountRef.current;
-    if (!mount) return undefined;
-    const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(32, 1, 0.1, 100);
-    camera.position.set(0, 0, 13);
-    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    renderer.outputColorSpace = THREE.SRGBColorSpace;
-    renderer.setClearColor(0x000000, 0);
-    mount.appendChild(renderer.domElement);
-
-    const graph = new THREE.Group();
-    scene.add(graph);
-    scene.add(new THREE.AmbientLight(0xbcebdc, 2.4));
-    const keyLight = new THREE.DirectionalLight(0xffffff, 3.1);
-    keyLight.position.set(-3, 5, 8);
-    scene.add(keyLight);
-
-    const positions = new Map(
-      stackSceneNodes.map((node) => [node.id, new THREE.Vector3(...node.position)]),
-    );
-    const hitTargets = [];
-    const textureLoader = new THREE.TextureLoader();
-    stackSceneNodes.forEach((node) => {
-      const nodeGroup = new THREE.Group();
-      nodeGroup.position.copy(positions.get(node.id));
-      graph.add(nodeGroup);
-
-      const hitMesh = new THREE.Mesh(
-        new THREE.BoxGeometry(node.id === "service" ? 1.6 : 1.05, node.id === "service" ? 1.45 : 1.05, 0.5),
-        new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false }),
-      );
-      hitMesh.userData.id = node.id;
-      nodeGroup.add(hitMesh);
-      hitTargets.push(hitMesh);
-      meshesRef.current.set(node.id, nodeGroup);
-
-      const frameSize = node.id === "service" ? [1.6, 1.45, 0.48] : [1.04, 1.04, 0.06];
-      const frame = new THREE.LineSegments(
-        new THREE.EdgesGeometry(new THREE.BoxGeometry(...frameSize)),
-        new THREE.LineBasicMaterial({ color: node.color, transparent: true, opacity: node.id === "service" ? 0 : 0.3 }),
-      );
-      frame.userData.nodeFrame = node.id;
-      nodeGroup.add(frame);
-      framesRef.current.set(node.id, frame);
-
-      if (node.id !== "service") {
-        const texture = textureLoader.load(node.logo);
-        texture.colorSpace = THREE.SRGBColorSpace;
-        const logo = new THREE.Sprite(
-          new THREE.SpriteMaterial({ map: texture, transparent: true, color: 0xffffff, depthTest: true }),
-        );
-        logo.scale.set(0.78, 0.78, 1);
-        logo.position.z = 0.08;
-        nodeGroup.add(logo);
-      }
-
-      const ring = new THREE.Mesh(
-        new THREE.TorusGeometry(0.66, 0.018, 8, 48),
-        new THREE.MeshBasicMaterial({ color: node.color, transparent: true, opacity: 0.46 }),
-      );
-      ring.rotation.x = Math.PI / 2;
-      ring.position.copy(positions.get(node.id));
-      ring.userData.nodeRing = node.id;
-      if (node.id !== "service") graph.add(ring);
-    });
-
-    const particles = [];
-    stackSceneEdges.forEach(([fromId, toId], edgeIndex) => {
-      const from = positions.get(fromId);
-      const to = positions.get(toId);
-      const geometry = new THREE.BufferGeometry().setFromPoints([from, to]);
-      graph.add(
-        new THREE.Line(
-          geometry,
-          new THREE.LineBasicMaterial({ color: 0x0c9c83, transparent: true, opacity: 0.42 }),
-        ),
-      );
-      for (let i = 0; i < 2; i += 1) {
-        const particle = new THREE.Mesh(
-          new THREE.SphereGeometry(0.065, 8, 8),
-          new THREE.MeshBasicMaterial({ color: 0x087c6d }),
-        );
-        particle.userData = { from, to, offset: (edgeIndex * 0.17 + i * 0.5) % 1 };
-        graph.add(particle);
-        particles.push(particle);
-      }
-    });
-
-    const raycaster = new THREE.Raycaster();
-    const pointer = new THREE.Vector2();
-    const onPointerDown = (event) => {
-      const rect = renderer.domElement.getBoundingClientRect();
-      pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
-      pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
-      raycaster.setFromCamera(pointer, camera);
-      const [hit] = raycaster.intersectObjects(hitTargets);
-      if (hit?.object?.userData.id) setSelectedId(hit.object.userData.id);
-    };
-    renderer.domElement.addEventListener("pointerdown", onPointerDown);
-
-    const resize = () => {
-      const { width, height } = mount.getBoundingClientRect();
-      renderer.setSize(Math.max(width, 320), Math.max(height, 270), false);
-      camera.aspect = Math.max(width, 320) / Math.max(height, 270);
-      camera.updateProjectionMatrix();
-    };
-    const resizeObserver = new ResizeObserver(resize);
-    resizeObserver.observe(mount);
-    resize();
-
-    const clock = new THREE.Clock();
-    let frame;
-    const animate = () => {
-      const elapsed = clock.getElapsedTime();
-      graph.rotation.y = Math.sin(elapsed * 0.34) * 0.12;
-      graph.rotation.x = Math.cos(elapsed * 0.28) * 0.035;
-      graph.children.forEach((child) => {
-        if (child.userData.nodeRing) {
-          child.rotation.z = elapsed * 0.4;
-          child.scale.setScalar(1 + Math.sin(elapsed * 2 + child.position.x) * 0.04);
-        }
-      });
-      particles.forEach((particle) => {
-        const { from, to, offset } = particle.userData;
-        const progress = (elapsed * 0.28 + offset) % 1;
-        particle.position.lerpVectors(from, to, progress);
-      });
-      renderer.render(scene, camera);
-      frame = requestAnimationFrame(animate);
-    };
-    animate();
-
-    return () => {
-      cancelAnimationFrame(frame);
-      resizeObserver.disconnect();
-      renderer.domElement.removeEventListener("pointerdown", onPointerDown);
-      renderer.dispose();
-      graph.traverse((object) => {
-        object.geometry?.dispose();
-        if (Array.isArray(object.material)) object.material.forEach((item) => { item.map?.dispose(); item.dispose(); });
-        else { object.material?.map?.dispose(); object.material?.dispose(); }
-      });
-      mount.removeChild(renderer.domElement);
-      meshesRef.current.clear();
-      framesRef.current.clear();
-    };
-  }, []);
-
-  useEffect(() => {
-    meshesRef.current.forEach((mesh, id) => {
-      mesh.scale.setScalar(id === selectedId ? 1.08 : 1);
-    });
-    framesRef.current.forEach((frame, id) => {
-      frame.material.opacity = id === "service" ? 0 : id === selectedId ? 0.95 : 0.3;
-      frame.scale.setScalar(id === selectedId ? 1.05 : 1);
-    });
-  }, [selectedId]);
-
-  return (
-    <div className="tool-stack-visual">
-      <div className="tool-stack-visual-head">
-        <div>
-          <span className="tool-stack-kicker">3D SIGNAL MAP</span>
-          <h3>신호가 만들어지고, 저장되고, 다시 만나는 길</h3>
-        </div>
-        <span>노드를 누르면 운영 포인트가 바뀝니다</span>
-      </div>
-      <div className="tool-stack-scene-shell">
-        <div
-          ref={mountRef}
-          className={`tool-stack-scene ${selectedId === "service" ? "is-service-selected" : ""}`}
-          role="img"
-          aria-label="결혼 서비스에서 Alloy를 거쳐 Prometheus, Loki, Tempo로 분기되고 Grafana로 모이는 3D 관측 흐름"
-        >
-          <span className="stack-service-logo-overlay" aria-hidden="true">
-            <img className="stack-service-ec2-logo" src="/logos/ec2.png" alt="" />
-            <img className="stack-service-spring-logo" src="/logos/spring-boot.svg" alt="" />
-            <b>EC2</b>
-          </span>
-        </div>
-        <div className="tool-stack-scene-legend" role="list" aria-label="관측 스택 구성 요소">
-          {stackSceneNodes.map((node) => (
-            <button
-              type="button"
-              key={node.id}
-              className={selectedId === node.id ? "is-active" : ""}
-              onClick={() => setSelectedId(node.id)}
-            >
-              <i style={{ backgroundColor: node.color }} aria-hidden="true" />
-              <span>{node.label}</span>
-              <small>{node.role}</small>
-            </button>
-          ))}
-        </div>
-      </div>
-      <div className="tool-stack-scene-detail" aria-live="polite">
-        <span>{selectedNode.role}</span>
-        <strong>{selectedNode.label}</strong>
-        <p>{selectedNode.detail}</p>
-      </div>
-    </div>
-  );
-}
 
 function Docs({ ids }) {
   return (
@@ -521,7 +238,7 @@ function ScenarioProfile({ form }) {
         <strong>{profile.scene}</strong>
       </div>
       <div>
-        <b>이번에 답할 질문</b>
+        <b>조사할 상황</b>
         <p>{profile.incident}</p>
       </div>
       <div>
@@ -629,33 +346,55 @@ export default function ToolGuide() {
         <span className="guide-overline">TOOL DECISION GUIDE</span>
         <h1>도구</h1>
         <p>
-          유명한 도구를 고르는 것보다 먼저, 우리 팀이 어떤 질문에 답해야 하는지
-          적어 봅시다. 수집·저장·조회는 다른 일입니다.
+          팀의 조사 목표에 맞춰 필요한 신호와 보관 기간을 정합니다.
+          수집·저장·조회는 각각 다른 역할을 맡습니다.
+        </p>
+        <p className="guide-beginner-note">
+          처음 읽는다면 OpenTelemetry → Alloy → Prometheus·Loki·Tempo → Grafana 순서로 글을 펼쳐 보세요.
+          API 요청 한 건에서 관측 데이터가 만들어지고, 전달되고, 저장되고, 조회되는 과정을 따라갈 수 있습니다.
         </p>
         <div className="guide-hero-notes">
-          <span>01 질문을 적기</span>
+          <span>01 조사 목표 정하기</span>
           <span>02 신호의 길 정하기</span>
           <span>03 운영 비용 비교하기</span>
         </div>
+        <nav className="guide-jump-nav" aria-label="도구 페이지 바로가기">
+          <a href="#learning-paths">도구별 글 보기</a>
+          <a href="#current-stack">현재 구성 이해하기</a>
+          <a href="#tool-simulator">상황별 선택하기</a>
+        </nav>
       </header>
       <div className="guide-body">
+        <section className="guide-glossary" aria-labelledby="guide-glossary-title">
+          <span className="story-section-label">START HERE</span>
+          <h2 id="guide-glossary-title">처음 읽을 때 필요한 말</h2>
+          <p>관측은 장애가 났을 때 서비스 안에서 무슨 일이 있었는지 밖에서 확인하는 일입니다. 아래 말만 알고 도구별 글을 읽어도 흐름을 따라갈 수 있습니다.</p>
+          <dl>
+            <div><dt>계측</dt><dd>앱 코드나 라이브러리에서 요청 수, 로그, 작업 시간을 기록하도록 만드는 일</dd></div>
+            <div><dt>메트릭</dt><dd>시간에 따라 쌓이는 숫자. 예: 5분 동안의 요청 수와 실패율</dd></div>
+            <div><dt>로그</dt><dd>사건 한 건의 기록. 예: API 요청 실패 시각과 오류 내용</dd></div>
+            <div><dt>트레이스 · span</dt><dd>요청 하나의 작업 경로와 그 안의 개별 작업. 예: API → 외부 호출 → DB 저장</dd></div>
+            <div><dt>수집기 · 저장소</dt><dd>수집기는 데이터를 받아 필요한 곳으로 보내고, 저장소는 나중에 조회할 수 있게 보관합니다.</dd></div>
+            <div><dt>라벨 · 쿼리</dt><dd>라벨은 서비스·환경처럼 데이터를 분류하는 이름표이고, 쿼리는 원하는 데이터를 찾는 질문입니다.</dd></div>
+          </dl>
+        </section>
+        <ToolLearningPaths />
         <section className="guide-intro">
           <span className="story-section-label">BEFORE CHOOSING</span>
           <h2>도구 이름보다 먼저 정할 네 가지</h2>
           <div className="guide-criteria">
             <article>
               <b>01</b>
-              <h3>무엇을 찾을까?</h3>
+              <h3>조사할 신호</h3>
               <p>
-                장애 시각의 오류 비율이 필요한가요, 특정 결혼 정보의 로그 본문이
-                필요한가요? 질문에 따라 메트릭·로그·트레이스의 비중이
-                달라집니다.
+                오류 비율과 발생 시각은 메트릭으로, 특정 사건의 내용은 로그로,
+                요청이 지나간 서비스 경로는 트레이스로 살펴봅니다.
               </p>
               <Docs ids={["sre", "prom", "loki", "tempo"]} />
             </article>
             <article>
               <b>02</b>
-              <h3>얼마나 오래 보관할까?</h3>
+              <h3>보관 기간과 비용</h3>
               <p>
                 데이터량은 초당 유입량과 보관 기간을 함께 봐야 합니다. 메트릭
                 라벨과 로그 인덱스의 값 종류도 비용에 영향을 줍니다.
@@ -664,7 +403,7 @@ export default function ToolGuide() {
             </article>
             <article>
               <b>03</b>
-              <h3>누가 운영할까?</h3>
+              <h3>운영 책임</h3>
               <p>
                 직접 운영하면 설정과 장애 대응을 팀이 맡습니다. 관리형 서비스는
                 운영 부담을 줄일 수 있지만 비용과 데이터 이동을 따져야 합니다.
@@ -673,7 +412,7 @@ export default function ToolGuide() {
             </article>
             <article>
               <b>04</b>
-              <h3>이미 가진 것이 뭘까?</h3>
+              <h3>기존 계측 자산</h3>
               <p>
                 기존 OpenTelemetry Collector나 APM이 있다면 교체 비용도
                 계산합니다. 새 도구의 장점만 보고 이미 작동하는 경로를 버릴
@@ -683,15 +422,13 @@ export default function ToolGuide() {
             </article>
           </div>
         </section>
-        <ToolLearningPaths />
-        <section className="guide-stack">
+        <section className="guide-stack" id="current-stack">
           <span className="story-section-label">THE CURRENT STACK</span>
           <h2>비비디는</h2>
           <p className="guide-section-lead">
             수집기가 데이터를 모으고, 신호마다 다른 저장소가 보관합니다.
             Grafana는 그 결과를 조회합니다. 어느 한 층이 비어도 조사가 끊깁니다.
           </p>
-          <ToolStackScene />
           <Docs ids={["alloy", "prom", "loki", "tempo", "grafana"]} />
           <div className="layer-list">
             {layers.map((layer, i) => (
@@ -773,7 +510,7 @@ export default function ToolGuide() {
             ))}
           </div>
         </section>
-        <section className="guide-simulator">
+        <section className="guide-simulator" id="tool-simulator">
           <span className="story-section-label">TRY A SCENARIO</span>
           <h2>상황을 바꾸며 선택해 보기</h2>
           <p className="guide-section-lead">

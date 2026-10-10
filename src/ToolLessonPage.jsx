@@ -1,6 +1,8 @@
+import { useState, Fragment } from "react";
 import { sources } from "./content";
-import { ToolArchitectureGallery } from "./Architecture";
 import { findToolSeries, toolCurriculum } from "./toolLessons";
+import { diagramForChapter } from "./toolDiagrams";
+import { SourceImage } from "./SourceImage";
 
 const toolLogoPaths = {
   otel: "/logos/opentelemetry.svg",
@@ -46,7 +48,7 @@ function ToolSeriesNav({ series, current }) {
 
 function AlternativeTable({ rows }) {
   return (
-    <section className="tool-lesson-comparison" aria-labelledby="tool-lesson-comparison-title">
+    <section className="tool-lesson-comparison" id="lesson-comparison" aria-labelledby="tool-lesson-comparison-title">
       <div className="tool-lesson-comparison-heading">
         <span>DECISION TABLE</span>
         <h2 id="tool-lesson-comparison-title">같은 기준으로 비교하기</h2>
@@ -69,15 +71,13 @@ function AlternativeTable({ rows }) {
 }
 
 export function ToolLearningPaths() {
+  const [openSeries, setOpenSeries] = useState(null);
   return (
-    <section className="tool-learning-paths" aria-labelledby="tool-learning-title">
+    <section className="tool-learning-paths" id="learning-paths" aria-labelledby="tool-learning-title">
       <div className="tool-learning-heading">
         <span className="story-section-label">LEARNING PATHS</span>
         <h2 id="tool-learning-title">도구별로 쪼개 읽기</h2>
-        <p>
-          한 도구의 모든 내용을 한 번에 읽지 않습니다. 개요에서 시작해 데이터 모델,
-          내부 구조, 운영, 실습 순서로 필요한 부분만 이어서 읽어 보세요.
-        </p>
+        <p>먼저 도구의 역할을 고르세요. 필요한 도구를 펼치면 글의 순서와 주제를 볼 수 있습니다.</p>
       </div>
       <div className="tool-learning-grid">
         {toolCurriculum.map((series) => (
@@ -92,15 +92,33 @@ export function ToolLearningPaths() {
               <span>{series.role}</span>
               <h3>{series.name}</h3>
               <p>{series.summary}</p>
-              <ol>
-                {series.chapters.map((chapter, index) => (
-                  <li key={chapter.slug}>
-                    <a href={`/tools/${series.id}/${chapter.slug}`}>
-                      <b>{String(index + 1).padStart(2, "0")}</b> {chapter.title}
-                    </a>
-                  </li>
-                ))}
-              </ol>
+              <div className="tool-learning-card-meta">
+                <span>{series.chapters.length}개 챕터</span>
+              </div>
+              <button
+                className="tool-learning-toggle"
+                type="button"
+                aria-expanded={openSeries === series.id}
+                aria-controls={`tool-chapters-${series.id}`}
+                onClick={() => setOpenSeries(openSeries === series.id ? null : series.id)}
+              >
+                {openSeries === series.id ? "글 목록 접기" : "글 목록 보기"}
+                <span aria-hidden="true">{openSeries === series.id ? "−" : "+"}</span>
+              </button>
+              {openSeries === series.id && (
+                <ol id={`tool-chapters-${series.id}`}>
+                  {series.chapters.map((chapter, index) => (
+                    <li key={chapter.slug}>
+                      <a href={`/tools/${series.id}/${chapter.slug}`}>
+                        <span className="tool-learning-chapter-title">
+                          <b>{String(index + 1).padStart(2, "0")}</b> {chapter.title}
+                        </span>
+                        <small>{chapter.lead}</small>
+                      </a>
+                    </li>
+                  ))}
+                </ol>
+              )}
             </div>
           </article>
         ))}
@@ -122,6 +140,7 @@ export function ToolLessonPage({ toolId, chapterSlug }) {
   const { series, chapter, index } = result;
   const previous = series.chapters[index - 1];
   const next = series.chapters[index + 1];
+  const media = diagramForChapter(series.id, chapter.slug);
   return (
     <div className="tool-lesson-page">
       <div className="tool-lesson-layout">
@@ -133,23 +152,22 @@ export function ToolLessonPage({ toolId, chapterSlug }) {
             <h1>{chapter.title}</h1>
             <p>{chapter.lead}</p>
           </header>
-          {chapter.blocks.map((block) => (
-            <section className="tool-lesson-block" key={block.title}>
+          {chapter.blocks.map((block, blockIndex) => (
+            <Fragment key={`${block.title}-${blockIndex}`}>
+            <section className="tool-lesson-block" id={`lesson-block-${blockIndex + 1}`}>
               <h2>{block.title}</h2>
               <p>{block.text}</p>
+              {block.code && <pre className="tool-lesson-code"><code>{block.code}</code></pre>}
               <ul>
                 {block.points.map((point) => <li key={point}>{point}</li>)}
               </ul>
             </section>
+            {blockIndex === 0 && media && <SourceImage media={media} title="그림으로 보는 흐름" id="lesson-image" />}
+            </Fragment>
           ))}
           {chapter.comparison && <AlternativeTable rows={chapter.comparison} />}
-          {chapter.architectureTool && (
-            <section className="tool-lesson-architecture">
-              <ToolArchitectureGallery focusTool={chapter.architectureTool} />
-            </section>
-          )}
           {chapter.practice && (
-            <section className="tool-lesson-practice">
+            <section className="tool-lesson-practice" id="lesson-practice">
               <span>직접 해 보기</span>
               <h2>이 흐름을 실습에서 확인해 보세요</h2>
               <p>예제 데이터로 쿼리를 실행하고, 결과에서 다음 조사 위치를 선택합니다.</p>

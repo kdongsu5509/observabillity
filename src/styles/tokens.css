@@ -19,6 +19,9 @@
   --font-display:
     "BM Hanna 11", "BM Hanna Air", -apple-system, BlinkMacSystemFont,
     "Segoe UI", sans-serif;
+  --font-reading:
+    "Pretendard Variable", "Apple SD Gothic Neo", "Noto Sans KR",
+    "Malgun Gothic", sans-serif;
 
   --space-1: 4px;
   --space-2: 8px;

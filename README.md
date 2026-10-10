@@ -23,3 +23,5 @@ node --test src/practiceEngine.test.js
 ```
 
 `dist/`를 정적 호스트에 배포할 때 `/practice` 및 `/read/...` 요청이 `index.html`로 돌아오도록 SPA 경로 재작성을 설정하세요.
+
+The /practice route opens a Grafana UI dashboard by default. Use Dashboard and Explore tabs to switch views. Dashboard panels open their underlying PromQL, LogQL, or TraceQL queries in Explore; log trace IDs open the matching Tempo trace.

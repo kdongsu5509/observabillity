@@ -1,0 +1,848 @@
+{
+  "bibbidi-alerts": {
+    "uid": "bibbidi-alerts",
+    "title": "비비디 위험 대시보드",
+    "time": "now-1h",
+    "refresh": "1m",
+    "rows": [
+      {
+        "title": "",
+        "panels": [
+          {
+            "id": 1,
+            "title": "울리는 알림",
+            "type": "alertlist",
+            "x": 0,
+            "y": 0,
+            "w": 24,
+            "h": 6,
+            "queries": [],
+            "unit": null
+          }
+        ]
+      },
+      {
+        "title": "Critical 조건",
+        "panels": [
+          {
+            "id": 11,
+            "title": "C2 backend 수집",
+            "type": "stat",
+            "x": 0,
+            "y": 0,
+            "w": 4,
+            "h": 4,
+            "queries": [
+              {
+                "source": "prometheus",
+                "expr": "max(up{job=\"prometheus.scrape.bibbidi_backend\", deployment_environment_name=\"$env\"})"
+              }
+            ],
+            "unit": null
+          },
+          {
+            "id": 12,
+            "title": "W1·C1 5xx (5분)",
+            "type": "stat",
+            "x": 4,
+            "y": 0,
+            "w": 4,
+            "h": 4,
+            "queries": [
+              {
+                "source": "prometheus",
+                "expr": "round(sum(increase(http_server_requests_seconds_count{deployment_environment_name=\"$env\", status=~\"5..\"}[5m]))) or vector(0)"
+              }
+            ],
+            "unit": null
+          },
+          {
+            "id": 13,
+            "title": "C3 nginx 502·503·504 (5분)",
+            "type": "stat",
+            "x": 8,
+            "y": 0,
+            "w": 4,
+            "h": 4,
+            "queries": [
+              {
+                "source": "loki",
+                "expr": "sum(count_over_time({service_name=\"nginx\", deployment_environment_name=\"$env\"} | json | http_response_status_code=~\"502|503|504\" [5m])) or vector(0)"
+              }
+            ],
+            "unit": null
+          },
+          {
+            "id": 14,
+            "title": "W8·C5 Hikari",
+            "type": "stat",
+            "x": 12,
+            "y": 0,
+            "w": 4,
+            "h": 4,
+            "queries": [
+              {
+                "source": "prometheus",
+                "expr": "max(hikaricp_connections_pending{deployment_environment_name=\"$env\"})"
+              },
+              {
+                "source": "prometheus",
+                "expr": "max(hikaricp_connections_active{deployment_environment_name=\"$env\"}) / max(hikaricp_connections_max{deployment_environment_name=\"$env\"})"
+              }
+            ],
+            "unit": null
+          },
+          {
+            "id": 15,
+            "title": "W6·C4 디스크",
+            "type": "stat",
+            "x": 16,
+            "y": 0,
+            "w": 4,
+            "h": 4,
+            "queries": [
+              {
+                "source": "prometheus",
+                "expr": "1 - max(disk_free_bytes{deployment_environment_name=\"$env\"}) / max(disk_total_bytes{deployment_environment_name=\"$env\"})"
+              }
+            ],
+            "unit": "percentunit"
+          },
+          {
+            "id": 16,
+            "title": "C6 GC 직후 남은 데이터 비율",
+            "type": "stat",
+            "x": 20,
+            "y": 0,
+            "w": 4,
+            "h": 4,
+            "queries": [
+              {
+                "source": "prometheus",
+                "expr": "max(jvm_gc_live_data_size_bytes{deployment_environment_name=\"$env\"}) / max(jvm_gc_max_data_size_bytes{deployment_environment_name=\"$env\"})"
+              }
+            ],
+            "unit": "percentunit"
+          }
+        ]
+      },
+      {
+        "title": "Warning 조건",
+        "panels": [
+          {
+            "id": 21,
+            "title": "W2 API p95",
+            "type": "stat",
+            "x": 0,
+            "y": 0,
+            "w": 4,
+            "h": 4,
+            "queries": [
+              {
+                "source": "prometheus",
+                "expr": "histogram_quantile(0.95, sum by (le) (rate(traces_spanmetrics_latency_bucket{deployment_environment_name=\"$env\", span_kind=\"SPAN_KIND_SERVER\", span_name!~\".*/callback\", span_name!~\".*actuator.*\"}[5m])))"
+              }
+            ],
+            "unit": "s"
+          },
+          {
+            "id": 22,
+            "title": "W3 소셜 로그인 p95",
+            "type": "stat",
+            "x": 4,
+            "y": 0,
+            "w": 4,
+            "h": 4,
+            "queries": [
+              {
+                "source": "prometheus",
+                "expr": "histogram_quantile(0.95, sum by (le) (rate(traces_spanmetrics_latency_bucket{deployment_environment_name=\"$env\", span_kind=\"SPAN_KIND_SERVER\", span_name=~\".*/callback\"}[5m])))"
+              }
+            ],
+            "unit": "s"
+          },
+          {
+            "id": 23,
+            "title": "W4 ERROR 로그 (5분)",
+            "type": "stat",
+            "x": 8,
+            "y": 0,
+            "w": 4,
+            "h": 4,
+            "queries": [
+              {
+                "source": "loki",
+                "expr": "sum(count_over_time({service_name=\"bibbidi-backend\", deployment_environment_name=\"$env\"} | severity_text=~\"(?i)error|fatal\" | scope_name!~\".*GlobalExceptionHandler\" [5m])) or vector(0)"
+              }
+            ],
+            "unit": null
+          },
+          {
+            "id": 24,
+            "title": "W5 OIDC 공개 키 (5분)",
+            "type": "stat",
+            "x": 12,
+            "y": 0,
+            "w": 4,
+            "h": 4,
+            "queries": [
+              {
+                "source": "loki",
+                "expr": "sum(count_over_time({service_name=\"bibbidi-backend\", deployment_environment_name=\"$env\"} | severity_text=~\"(?i)warn\" | scope_name=~\".*OidcPublicKeyWarmUpScheduler\" [5m])) or vector(0)"
+              }
+            ],
+            "unit": null
+          },
+          {
+            "id": 25,
+            "title": "W9 힙",
+            "type": "stat",
+            "x": 16,
+            "y": 0,
+            "w": 4,
+            "h": 4,
+            "queries": [
+              {
+                "source": "prometheus",
+                "expr": "sum(jvm_memory_used_bytes{area=\"heap\", deployment_environment_name=\"$env\"}) / sum(jvm_memory_max_bytes{area=\"heap\", deployment_environment_name=\"$env\"} > 0)"
+              }
+            ],
+            "unit": "percentunit"
+          },
+          {
+            "id": 26,
+            "title": "W7 Loki 수집 거부 (10분)",
+            "type": "stat",
+            "x": 20,
+            "y": 0,
+            "w": 4,
+            "h": 4,
+            "queries": [
+              {
+                "source": "prometheus",
+                "expr": "round(sum(increase(loki_discarded_samples_total[10m]))) or vector(0)"
+              }
+            ],
+            "unit": null
+          }
+        ]
+      },
+      {
+        "title": "원인 찾기: 트레이스 (Tempo)",
+        "panels": [
+          {
+            "id": 31,
+            "title": "에러 요청 (W1·C1)",
+            "type": "table",
+            "x": 0,
+            "y": 0,
+            "w": 12,
+            "h": 9,
+            "queries": [
+              {
+                "source": "tempo",
+                "expr": "{resource.deployment.environment.name=\"$env\" && kind=server && status=error}"
+              }
+            ],
+            "unit": null
+          },
+          {
+            "id": 32,
+            "title": "느린 요청 (W2 API 1초, W3 콜백 3초 초과)",
+            "type": "table",
+            "x": 12,
+            "y": 0,
+            "w": 12,
+            "h": 9,
+            "queries": [
+              {
+                "source": "tempo",
+                "expr": "{resource.deployment.environment.name=\"$env\" && kind=server && duration > 1s && name !~ \".*/callback\"} || {resource.deployment.environment.name=\"$env\" && kind=server && duration > 3s && name =~ \".*/callback\"}"
+              }
+            ],
+            "unit": null
+          }
+        ]
+      },
+      {
+        "title": "원인 찾기: 로그 (Loki)",
+        "panels": [
+          {
+            "id": 41,
+            "title": "backend ERROR (W1·C1·W4)",
+            "type": "logs",
+            "x": 0,
+            "y": 0,
+            "w": 24,
+            "h": 10,
+            "queries": [
+              {
+                "source": "loki",
+                "expr": "{service_name=\"bibbidi-backend\", deployment_environment_name=\"$env\"} | severity_text=~\"(?i)error|fatal\""
+              }
+            ],
+            "unit": null
+          },
+          {
+            "id": 42,
+            "title": "nginx 5xx (C3)",
+            "type": "logs",
+            "x": 0,
+            "y": 10,
+            "w": 12,
+            "h": 8,
+            "queries": [
+              {
+                "source": "loki",
+                "expr": "{service_name=\"nginx\", deployment_environment_name=\"$env\"} | json | http_response_status_code >= 500"
+              }
+            ],
+            "unit": null
+          },
+          {
+            "id": 43,
+            "title": "OIDC 공개 키 (W5)",
+            "type": "logs",
+            "x": 12,
+            "y": 10,
+            "w": 12,
+            "h": 8,
+            "queries": [
+              {
+                "source": "loki",
+                "expr": "{service_name=\"bibbidi-backend\", deployment_environment_name=\"$env\"} | scope_name=~\".*OidcPublicKey.*\" | severity_text=~\"(?i)warn|error\""
+              }
+            ],
+            "unit": null
+          }
+        ]
+      }
+    ]
+  },
+  "bibbidi-app": {
+    "uid": "bibbidi-app",
+    "title": "비비디 앱 서버",
+    "time": "now-3h",
+    "refresh": "1m",
+    "rows": [
+      {
+        "title": "지금 상태",
+        "panels": [
+          {
+            "id": 2,
+            "title": "backend 수집",
+            "type": "stat",
+            "x": 0,
+            "y": 1,
+            "w": 4,
+            "h": 4,
+            "queries": [
+              {
+                "source": "prometheus",
+                "expr": "max(up{job=\"prometheus.scrape.bibbidi_backend\", deployment_environment_name=\"$env\"})"
+              }
+            ],
+            "unit": null
+          },
+          {
+            "id": 3,
+            "title": "요청 (초당)",
+            "type": "stat",
+            "x": 4,
+            "y": 1,
+            "w": 4,
+            "h": 4,
+            "queries": [
+              {
+                "source": "prometheus",
+                "expr": "sum(rate(http_server_requests_seconds_count{deployment_environment_name=\"$env\", uri!~\"/actuator.*\"}[$__rate_interval]))"
+              }
+            ],
+            "unit": "reqps"
+          },
+          {
+            "id": 4,
+            "title": "5xx 비율 (5분)",
+            "type": "stat",
+            "x": 8,
+            "y": 1,
+            "w": 4,
+            "h": 4,
+            "queries": [
+              {
+                "source": "prometheus",
+                "expr": "sum(rate(http_server_requests_seconds_count{deployment_environment_name=\"$env\", uri!~\"/actuator.*\", status=~\"5..\"}[5m])) / clamp_min(sum(rate(http_server_requests_seconds_count{deployment_environment_name=\"$env\", uri!~\"/actuator.*\"}[5m])), 1e-9)"
+              }
+            ],
+            "unit": "percentunit"
+          },
+          {
+            "id": 5,
+            "title": "p95 응답 시간",
+            "type": "stat",
+            "x": 12,
+            "y": 1,
+            "w": 4,
+            "h": 4,
+            "queries": [
+              {
+                "source": "prometheus",
+                "expr": "histogram_quantile(0.95, sum by (le) (rate(traces_spanmetrics_latency_bucket{deployment_environment_name=\"$env\", span_kind=\"SPAN_KIND_SERVER\", span_name!~\".*actuator.*\"}[5m])))"
+              }
+            ],
+            "unit": "s"
+          },
+          {
+            "id": 6,
+            "title": "힙 사용률",
+            "type": "stat",
+            "x": 16,
+            "y": 1,
+            "w": 4,
+            "h": 4,
+            "queries": [
+              {
+                "source": "prometheus",
+                "expr": "sum(jvm_memory_used_bytes{area=\"heap\", deployment_environment_name=\"$env\"}) / sum(jvm_memory_max_bytes{area=\"heap\", deployment_environment_name=\"$env\"} > 0)"
+              }
+            ],
+            "unit": "percentunit"
+          },
+          {
+            "id": 7,
+            "title": "업타임",
+            "type": "stat",
+            "x": 20,
+            "y": 1,
+            "w": 4,
+            "h": 4,
+            "queries": [
+              {
+                "source": "prometheus",
+                "expr": "max(process_uptime_seconds{deployment_environment_name=\"$env\"})"
+              }
+            ],
+            "unit": "dtdurations"
+          }
+        ]
+      },
+      {
+        "title": "트래픽과 API",
+        "panels": [
+          {
+            "id": 11,
+            "title": "상태 코드별 요청 (초당)",
+            "type": "timeseries",
+            "x": 0,
+            "y": 6,
+            "w": 12,
+            "h": 8,
+            "queries": [
+              {
+                "source": "prometheus",
+                "expr": "sum by (status) (rate(http_server_requests_seconds_count{deployment_environment_name=\"$env\", uri!~\"/actuator.*\"}[$__rate_interval]))"
+              }
+            ],
+            "unit": "reqps"
+          },
+          {
+            "id": 12,
+            "title": "응답 시간 p50 / p95 / p99",
+            "type": "timeseries",
+            "x": 12,
+            "y": 6,
+            "w": 12,
+            "h": 8,
+            "queries": [
+              {
+                "source": "prometheus",
+                "expr": "histogram_quantile(0.50, sum by (le) (rate(traces_spanmetrics_latency_bucket{deployment_environment_name=\"$env\", span_kind=\"SPAN_KIND_SERVER\", span_name!~\".*actuator.*\"}[$__rate_interval])))"
+              },
+              {
+                "source": "prometheus",
+                "expr": "histogram_quantile(0.95, sum by (le) (rate(traces_spanmetrics_latency_bucket{deployment_environment_name=\"$env\", span_kind=\"SPAN_KIND_SERVER\", span_name!~\".*actuator.*\"}[$__rate_interval])))"
+              },
+              {
+                "source": "prometheus",
+                "expr": "histogram_quantile(0.99, sum by (le) (rate(traces_spanmetrics_latency_bucket{deployment_environment_name=\"$env\", span_kind=\"SPAN_KIND_SERVER\", span_name!~\".*actuator.*\"}[$__rate_interval])))"
+              }
+            ],
+            "unit": "s"
+          },
+          {
+            "id": 13,
+            "title": "요청 많은 API Top 10 (5분)",
+            "type": "bargauge",
+            "x": 0,
+            "y": 14,
+            "w": 8,
+            "h": 8,
+            "queries": [
+              {
+                "source": "prometheus",
+                "expr": "topk(10, sum by (span_name) (rate(traces_spanmetrics_calls_total{deployment_environment_name=\"$env\", span_kind=\"SPAN_KIND_SERVER\", span_name!~\".*actuator.*\"}[5m])))"
+              }
+            ],
+            "unit": "reqps"
+          },
+          {
+            "id": 14,
+            "title": "느린 API Top 10 (p95, 5분)",
+            "type": "bargauge",
+            "x": 8,
+            "y": 14,
+            "w": 8,
+            "h": 8,
+            "queries": [
+              {
+                "source": "prometheus",
+                "expr": "topk(10, histogram_quantile(0.95, sum by (span_name, le) (rate(traces_spanmetrics_latency_bucket{deployment_environment_name=\"$env\", span_kind=\"SPAN_KIND_SERVER\", span_name!~\".*actuator.*\"}[5m]))))"
+              }
+            ],
+            "unit": "s"
+          },
+          {
+            "id": 15,
+            "title": "에러 많은 API Top 10 (5분)",
+            "type": "bargauge",
+            "x": 16,
+            "y": 14,
+            "w": 8,
+            "h": 8,
+            "queries": [
+              {
+                "source": "prometheus",
+                "expr": "topk(10, round(sum by (span_name) (increase(traces_spanmetrics_calls_total{deployment_environment_name=\"$env\", span_kind=\"SPAN_KIND_SERVER\", status_code=\"STATUS_CODE_ERROR\"}[5m]))) > 0)"
+              }
+            ],
+            "unit": null
+          }
+        ]
+      },
+      {
+        "title": "DB · JVM",
+        "panels": [
+          {
+            "id": 21,
+            "title": "Hikari 커넥션",
+            "type": "timeseries",
+            "x": 0,
+            "y": 23,
+            "w": 8,
+            "h": 8,
+            "queries": [
+              {
+                "source": "prometheus",
+                "expr": "max(hikaricp_connections_active{deployment_environment_name=\"$env\"})"
+              },
+              {
+                "source": "prometheus",
+                "expr": "max(hikaricp_connections_idle{deployment_environment_name=\"$env\"})"
+              },
+              {
+                "source": "prometheus",
+                "expr": "max(hikaricp_connections_pending{deployment_environment_name=\"$env\"})"
+              },
+              {
+                "source": "prometheus",
+                "expr": "max(hikaricp_connections_max{deployment_environment_name=\"$env\"})"
+              }
+            ],
+            "unit": null
+          },
+          {
+            "id": 22,
+            "title": "힙",
+            "type": "timeseries",
+            "x": 8,
+            "y": 23,
+            "w": 8,
+            "h": 8,
+            "queries": [
+              {
+                "source": "prometheus",
+                "expr": "sum(jvm_memory_used_bytes{area=\"heap\", deployment_environment_name=\"$env\"})"
+              },
+              {
+                "source": "prometheus",
+                "expr": "sum(jvm_memory_max_bytes{area=\"heap\", deployment_environment_name=\"$env\"} > 0)"
+              },
+              {
+                "source": "prometheus",
+                "expr": "max(jvm_gc_live_data_size_bytes{deployment_environment_name=\"$env\"})"
+              }
+            ],
+            "unit": "bytes"
+          },
+          {
+            "id": 23,
+            "title": "CPU · GC 일시정지",
+            "type": "timeseries",
+            "x": 16,
+            "y": 23,
+            "w": 8,
+            "h": 8,
+            "queries": [
+              {
+                "source": "prometheus",
+                "expr": "max(process_cpu_usage{deployment_environment_name=\"$env\"})"
+              },
+              {
+                "source": "prometheus",
+                "expr": "sum(rate(jvm_gc_pause_seconds_sum{deployment_environment_name=\"$env\"}[$__rate_interval]))"
+              }
+            ],
+            "unit": "percentunit"
+          }
+        ]
+      }
+    ]
+  },
+  "bibbidi-infra": {
+    "uid": "bibbidi-infra",
+    "title": "비비디 인프라",
+    "time": "now-6h",
+    "refresh": "5m",
+    "rows": [
+      {
+        "title": "앱 서버 호스트 ($env)",
+        "panels": [
+          {
+            "id": 2,
+            "title": "디스크 사용률",
+            "type": "gauge",
+            "x": 0,
+            "y": 1,
+            "w": 4,
+            "h": 8,
+            "queries": [
+              {
+                "source": "prometheus",
+                "expr": "1 - max(disk_free_bytes{deployment_environment_name=\"$env\"}) / max(disk_total_bytes{deployment_environment_name=\"$env\"})"
+              }
+            ],
+            "unit": "percentunit"
+          },
+          {
+            "id": 3,
+            "title": "서버 CPU · 부하",
+            "type": "timeseries",
+            "x": 4,
+            "y": 1,
+            "w": 8,
+            "h": 8,
+            "queries": [
+              {
+                "source": "prometheus",
+                "expr": "max(system_cpu_usage{deployment_environment_name=\"$env\"})"
+              },
+              {
+                "source": "prometheus",
+                "expr": "max(system_load_average_1m{deployment_environment_name=\"$env\"}) / max(system_cpu_count{deployment_environment_name=\"$env\"})"
+              }
+            ],
+            "unit": "percentunit"
+          },
+          {
+            "id": 4,
+            "title": "nginx 상태 코드",
+            "type": "timeseries",
+            "x": 12,
+            "y": 1,
+            "w": 6,
+            "h": 8,
+            "queries": [
+              {
+                "source": "loki",
+                "expr": "sum by (http_response_status_code) (count_over_time({service_name=\"nginx\", deployment_environment_name=\"$env\"} | json | __error__=\"\" | http_response_status_code != \"\" [$__auto]))"
+              }
+            ],
+            "unit": null
+          },
+          {
+            "id": 5,
+            "title": "컨테이너별 로그량",
+            "type": "timeseries",
+            "x": 18,
+            "y": 1,
+            "w": 6,
+            "h": 8,
+            "queries": [
+              {
+                "source": "loki",
+                "expr": "sum by (service_name) (count_over_time({deployment_environment_name=\"$env\"} [$__auto]))"
+              }
+            ],
+            "unit": null
+          }
+        ]
+      },
+      {
+        "title": "모니터링 스택",
+        "panels": [
+          {
+            "id": 11,
+            "title": "구성 요소 UP",
+            "type": "stat",
+            "x": 0,
+            "y": 10,
+            "w": 4,
+            "h": 8,
+            "queries": [
+              {
+                "source": "prometheus",
+                "expr": "up{job=~\"prometheus|loki|tempo|grafana\"}"
+              }
+            ],
+            "unit": null
+          },
+          {
+            "id": 12,
+            "title": "메모리 (RSS)",
+            "type": "timeseries",
+            "x": 4,
+            "y": 10,
+            "w": 8,
+            "h": 8,
+            "queries": [
+              {
+                "source": "prometheus",
+                "expr": "process_resident_memory_bytes{job=~\"prometheus|loki|tempo|grafana\"}"
+              }
+            ],
+            "unit": "bytes"
+          },
+          {
+            "id": 13,
+            "title": "수집량",
+            "type": "timeseries",
+            "x": 12,
+            "y": 10,
+            "w": 8,
+            "h": 8,
+            "queries": [
+              {
+                "source": "prometheus",
+                "expr": "sum(rate(loki_distributor_bytes_received_total[$__rate_interval]))"
+              },
+              {
+                "source": "prometheus",
+                "expr": "sum(rate(tempo_distributor_spans_received_total[$__rate_interval]))"
+              },
+              {
+                "source": "prometheus",
+                "expr": "sum(rate(prometheus_http_requests_total{handler=\"/api/v1/write\"}[$__rate_interval]))"
+              }
+            ],
+            "unit": "short"
+          },
+          {
+            "id": 14,
+            "title": "Loki 수집 거부 (10분)",
+            "type": "stat",
+            "x": 20,
+            "y": 10,
+            "w": 4,
+            "h": 4,
+            "queries": [
+              {
+                "source": "prometheus",
+                "expr": "round(sum(increase(loki_discarded_samples_total[10m]))) or vector(0)"
+              }
+            ],
+            "unit": null
+          },
+          {
+            "id": 15,
+            "title": "Prometheus 시리즈",
+            "type": "stat",
+            "x": 20,
+            "y": 14,
+            "w": 4,
+            "h": 4,
+            "queries": [
+              {
+                "source": "prometheus",
+                "expr": "prometheus_tsdb_head_series"
+              }
+            ],
+            "unit": null
+          }
+        ]
+      },
+      {
+        "title": "EC2: ${instance:text}",
+        "panels": [
+          {
+            "id": 21,
+            "title": "CPU 사용률",
+            "type": "timeseries",
+            "x": 0,
+            "y": 19,
+            "w": 6,
+            "h": 7,
+            "queries": [
+              {
+                "source": "cloudwatch",
+                "expr": null
+              }
+            ],
+            "unit": "percent"
+          },
+          {
+            "id": 22,
+            "title": "CPU 크레딧 잔액",
+            "type": "timeseries",
+            "x": 6,
+            "y": 19,
+            "w": 6,
+            "h": 7,
+            "queries": [
+              {
+                "source": "cloudwatch",
+                "expr": null
+              }
+            ],
+            "unit": null
+          },
+          {
+            "id": 25,
+            "title": "네트워크 (5분 합계)",
+            "type": "timeseries",
+            "x": 12,
+            "y": 19,
+            "w": 6,
+            "h": 7,
+            "queries": [
+              {
+                "source": "cloudwatch",
+                "expr": null
+              },
+              {
+                "source": "cloudwatch",
+                "expr": null
+              }
+            ],
+            "unit": "bytes"
+          },
+          {
+            "id": 26,
+            "title": "상태 검사 실패",
+            "type": "timeseries",
+            "x": 18,
+            "y": 19,
+            "w": 6,
+            "h": 7,
+            "queries": [
+              {
+                "source": "cloudwatch",
+                "expr": null
+              }
+            ],
+            "unit": null
+          }
+        ]
+      }
+    ]
+  }
+}

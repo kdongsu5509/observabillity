@@ -292,21 +292,10 @@ export function ReadingArticle({ id }) {
           </span>
           <h1>{chapter.title}</h1>
           <p className="story-lead">{chapter.lead}</p>
-          <div className="story-byline">
-            <span>비비디의 관측 노트</span>
-            <span>·</span>
-            <span>{lesson.readTime} 읽기</span>
-            <span>·</span>
-            <a href={`/practice#${chapter.lab}`}>관련 실습 ↗</a>
-          </div>
         </header>
         <div className="story-layout">
           <main className="story-body">
             <StoryBridge bridge={lesson.bridge} />
-            <div className="story-summary">
-              <span>한 줄 요약</span>
-              <p>{lesson.summary}</p>
-            </div>
             <section id="overview">
               <span className="story-section-label">01 / BEFORE READING</span>
               <h2>먼저 읽어 볼 공식 문서</h2>

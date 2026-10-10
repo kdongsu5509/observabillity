@@ -4,7 +4,7 @@ const POINTS = 1_440; // Six hours at a 15 second scrape interval.
 const END = Date.UTC(2026, 9, 10, 6, 0, 0);
 const START = END - (POINTS - 1) * STEP;
 const STATUSES = ["200", "500", "502"];
-const ENVS = ["production", "staging"];
+const ENVS = ["production", "development"];
 const BUCKETS = [0.1, 0.3, 0.5, 1, 2, Infinity];
 
 let telemetry;
@@ -73,13 +73,34 @@ function buildTelemetry() {
         env === "production" ? 1 : i >= POINTS - 18 || i % 240 < 18 ? 0 : 1,
       ]),
     });
+    const infrastructure = [
+      ["disk_usage_ratio", env === "production" ? 0.62 : 0.35],
+      ["hikaricp_connections_pending", env === "production" ? 1 : 0],
+      ["hikaricp_connections_active", env === "production" ? 4 : 2],
+      ["hikaricp_connections_max", 10],
+      ["jvm_gc_live_data_ratio", env === "production" ? 0.38 : 0.24],
+      ["jvm_memory_used_ratio", env === "production" ? 0.54 : 0.31],
+      ["loki_discarded_samples_total", 0],
+    ];
+    for (const [name, base] of infrastructure) {
+      series.push({
+        name,
+        labels: { service_name: "bibbidi-backend", deployment_environment_name: env },
+        points: Array.from({ length: POINTS }, (_, i) => [
+          START + i * STEP,
+          name === "hikaricp_connections_pending" && env === "production" && i >= 1320 && i < 1390
+            ? 4
+            : base,
+        ]),
+      });
+    }
   }
   for (let i = 0; i < 24_000; i++) {
     const time = START + Math.floor(random() * POINTS) * STEP;
     const incident = time >= START + 1320 * STEP && time < START + 1390 * STEP;
     const error = (incident && random() < 0.38) || random() < 0.015;
     const traceId = (0x7d9c2f + i * 7919).toString(16);
-    const env = random() < 0.82 ? "production" : "staging";
+    const env = random() < 0.82 ? "production" : "development";
     const message = error
       ? "상담 저장 실패 partner calendar timeout status=502"
       : random() < 0.4
@@ -102,6 +123,7 @@ function buildTelemetry() {
       time,
       traceId,
       service: "bibbidi-backend",
+      environment: env,
       status: error ? 502 : 200,
       duration,
       spans: [
@@ -113,6 +135,24 @@ function buildTelemetry() {
         },
         { name: "saveWeddingProfile", duration: 30 + Math.round(random() * 45) },
       ],
+    });
+  }
+  for (let i = 0; i < 2_400; i++) {
+    const time = START + Math.floor(random() * POINTS) * STEP;
+    const env = random() < 0.85 ? "production" : "development";
+    const gatewayError = random() < 0.08;
+    logs.push({
+      time,
+      labels: { service_name: "nginx", deployment_environment_name: env, severity_text: gatewayError ? "ERROR" : "INFO", trace_id: "" },
+      message: gatewayError ? "upstream gateway status=502" : "request status=200",
+    });
+  }
+  for (let i = 0; i < 120; i++) {
+    const time = START + Math.floor(random() * POINTS) * STEP;
+    logs.push({
+      time,
+      labels: { service_name: "bibbidi-backend", deployment_environment_name: "production", severity_text: "WARN", scope_name: "OidcPublicKeyWarmUpScheduler", trace_id: "" },
+      message: "OIDC public key refresh failed provider=Kakao",
     });
   }
   logs.sort((a, b) => b.time - a.time);
@@ -366,7 +406,7 @@ function evaluateTraces(expression, allTraces) {
         key === "resource.service.name"
           ? trace.service
           : key === "resource.deployment.environment.name"
-            ? "production"
+            ? trace.environment
             : key.includes("status_code")
               ? trace.status
               : trace.traceId;
@@ -384,25 +424,29 @@ function evaluateTraces(expression, allTraces) {
   );
 }
 
-export function runPracticeQuery(source, expression) {
+export function runPracticeQuery(source, expression, options = {}) {
   if (!expression.trim()) throw new Error("쿼리를 입력하세요.");
   const data = getTelemetry();
+  const resolved = expression.replaceAll("$env", options.environment || "production");
+  const from = options.rangeMinutes
+    ? data.series[0].points.at(-1)[0] - options.rangeMinutes * 60_000
+    : -Infinity;
   if (source === "Prometheus") {
-    const rows = evaluateProm(expression, data.series);
+    const rows = evaluateProm(resolved, data.series);
     return {
       kind: "series",
       count: rows.length,
       rows: rows
         .slice(0, 30)
-        .map((row) => ({ ...row, points: row.points.slice(-120) })),
+        .map((row) => ({ ...row, points: row.points.filter(point => point[0] >= from).slice(-1440) })),
     };
   }
   if (source === "Loki") {
-    const rows = evaluateLogs(expression, data.logs);
+    const rows = evaluateLogs(resolved, data.logs.filter(row => row.time >= from));
     return { kind: "logs", count: rows.length, rows: rows.slice(0, 120) };
   }
   if (source === "Tempo") {
-    const rows = evaluateTraces(expression, data.traces);
+    const rows = evaluateTraces(resolved, data.traces.filter(row => row.time >= from));
     return { kind: "traces", count: rows.length, rows: rows.slice(0, 80) };
   }
   throw new Error(`지원하지 않는 데이터 소스: ${source}`);
