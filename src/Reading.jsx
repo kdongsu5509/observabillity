@@ -4,6 +4,27 @@ import { lessons } from "./lessons";
 import { StorageDeepDive, TransportDeepDive } from "./Architecture";
 const SourceManuscripts = lazy(() => import("./SourceManuscripts"));
 
+const thumbnailByChapter = {
+  history:
+    "https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=1200&q=80",
+  logging:
+    "https://images.unsplash.com/photo-1515879218367-8466d910aaa4?auto=format&fit=crop&w=1200&q=80",
+  metrics:
+    "https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=1200&q=80",
+  trace:
+    "https://images.unsplash.com/photo-1558494949-ef010cbdcc31?auto=format&fit=crop&w=1200&q=80",
+  transport:
+    "https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=1200&q=80",
+  stack:
+    "https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=1200&q=80",
+  alerting:
+    "https://images.unsplash.com/photo-1563013544-824ae1b704d3?auto=format&fit=crop&w=1200&q=80",
+  performance:
+    "https://images.unsplash.com/photo-1497366811353-6870744d04b2?auto=format&fit=crop&w=1200&q=80",
+  incident:
+    "https://images.unsplash.com/photo-1504384308090-c894fdcc538d?auto=format&fit=crop&w=1200&q=80",
+};
+
 function SourceLinks({ ids = [] }) {
   return (
     <div className="article-sources">
@@ -22,6 +43,12 @@ function ReadingVisual({ chapter, large = false }) {
       className={`reading-visual reading-visual--${chapter.id} ${large ? "is-large" : ""}`}
       aria-hidden="true"
     >
+      <img
+        className="reading-visual-image"
+        src={thumbnailByChapter[chapter.id]}
+        alt=""
+        loading={large ? "eager" : "lazy"}
+      />
       <span className="visual-label">
         BIBBIDI / {lessons[chapter.id].category.toUpperCase()}
       </span>
