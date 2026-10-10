@@ -45,11 +45,14 @@ jobs:
             --filters 'Name=tag:Name,Values=observability-host' 'Name=instance-state-name,Values=running' \
             --query 'Reservations[].Instances[].InstanceId' --output text)"
           if [ -z "$instance_id" ] || [ "$instance_id" = "None" ]; then
-            echo "No running observability-host instance was found. Deploy the CloudFormation stack first."
-            exit 1
+            echo "found=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::No running observability-host instance was found. Deploy the CloudFormation stack before the first release."
+            exit 0
           fi
+          echo "found=true" >> "$GITHUB_OUTPUT"
           echo "instance_id=$instance_id" >> "$GITHUB_OUTPUT"
       - name: Deploy through AWS Systems Manager
+        if: steps.host.outputs.found == 'true'
         id: command
         shell: bash
         env:
@@ -63,6 +66,7 @@ jobs:
             --query 'Command.CommandId' --output text)"
           echo "command_id=$command_id" >> "$GITHUB_OUTPUT"
       - name: Wait for deployment
+        if: steps.host.outputs.found == 'true'
         shell: bash
         env:
           INSTANCE_ID: ${{ steps.host.outputs.instance_id }}
