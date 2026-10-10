@@ -328,16 +328,18 @@ function ToolStackScene() {
         const ec2Texture = textureLoader.load(node.containerLogo);
         ec2Texture.colorSpace = THREE.SRGBColorSpace;
         const ec2Logo = new THREE.Sprite(
-          new THREE.SpriteMaterial({ map: ec2Texture, transparent: true, depthTest: true }),
+          new THREE.SpriteMaterial({ map: ec2Texture, transparent: true, depthTest: false, depthWrite: false }),
         );
+        ec2Logo.renderOrder = 20;
         ec2Logo.scale.set(0.36, 0.36, 1);
         ec2Logo.position.set(0, 0.47, 0.27);
         nodeGroup.add(ec2Logo);
         const springTexture = textureLoader.load(node.logo);
         springTexture.colorSpace = THREE.SRGBColorSpace;
         const springLogo = new THREE.Sprite(
-          new THREE.SpriteMaterial({ map: springTexture, transparent: true, depthTest: true }),
+          new THREE.SpriteMaterial({ map: springTexture, transparent: true, depthTest: false, depthWrite: false }),
         );
+        springLogo.renderOrder = 21;
         springLogo.scale.set(0.68, 0.68, 1);
         springLogo.position.set(0, -0.08, 0.27);
         nodeGroup.add(springLogo);
