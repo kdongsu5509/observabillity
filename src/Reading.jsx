@@ -102,17 +102,7 @@ export function ReadingHome() {
           00번 글부터 시간 순서로 읽습니다. 서버 한 대의 로그 파일에서 오늘의
           관측 도구까지, 결혼 서비스의 문제를 하나씩 풀어 보세요.
         </p>
-        <div className="reading-home-stats">
-          <span>
-            <strong>{String(chapters.length).padStart(2, "0")}</strong>개의 글
-          </span>
-          <span>
-            <strong>01</strong>개의 결혼 서비스
-          </span>
-          <span>
-            <strong>∞</strong>개의 질문
-          </span>
-        </div>
+        <p className="reading-home-note">비비디의 관측 가능성과 관련한 내용을 최대한 담아 보았습니다.</p>
       </section>
       <div className="read-list-head">
         <div>
