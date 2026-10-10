@@ -54,7 +54,7 @@ function Header({ page }) {
             </button>
             {info && (
               <span className="tooltip" role="tooltip">
-                참고한 테코톡 영상 속 주인공들
+                느낌만 참고하면 좋은 테코톡
               </span>
             )}
           </span>
@@ -70,9 +70,9 @@ function Thanks() {
     <div className="thanks-page">
       <div className="page-hero compact">
         <span className="section-kicker">관련 테코톡</span>
-        <h1>참고한 테코톡 영상 속 주인공들</h1>
+        <h1>느낌만 참고하면 좋은 테코톡</h1>
         <p>
-          주제별로 모았습니다. 카드를 누르면 원본 YouTube 영상으로 이동합니다.
+          주제별로 모았습니다. 설명의 흐름과 전달 방식만 참고해 보세요. 카드를 누르면 원본 YouTube 영상으로 이동합니다.
         </p>
         <div className="thanks-count">{videos.length}개의 테코톡</div>
       </div>
