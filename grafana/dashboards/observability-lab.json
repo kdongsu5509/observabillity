@@ -1,0 +1,47 @@
+{
+  "uid": "observability-lab",
+  "title": "주문 서비스 조사",
+  "tags": ["bibbidi", "learning"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "15s",
+  "time": {"from": "now-1h", "to": "now"},
+  "panels": [
+    {
+      "id": 1,
+      "type": "timeseries",
+      "title": "Request rate",
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "gridPos": {"h": 8, "w": 24, "x": 0, "y": 0},
+      "targets": [{"refId": "A", "expr": "rate(prometheus_http_requests_total[5m])", "legendFormat": "{{handler}}"}],
+      "fieldConfig": {"defaults": {"unit": "reqps"}, "overrides": []},
+      "options": {"legend": {"displayMode": "list", "placement": "bottom"}, "tooltip": {"mode": "multi"}}
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "Error rate",
+      "datasource": {"type": "prometheus", "uid": "prometheus"},
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
+      "targets": [{"refId": "A", "expr": "sum(rate(prometheus_http_requests_total{code=~\"5..\"}[5m]))", "legendFormat": "5xx"}],
+      "fieldConfig": {"defaults": {"unit": "reqps", "color": {"mode": "fixed", "fixedColor": "red"}}, "overrides": []}
+    },
+    {
+      "id": 3,
+      "type": "logs",
+      "title": "Loki · application logs",
+      "datasource": {"type": "loki", "uid": "loki"},
+      "gridPos": {"h": 12, "w": 12, "x": 12, "y": 8},
+      "targets": [{"refId": "A", "expr": "{service_name=\"bibbidi-backend\"}"}],
+      "options": {"showTime": true, "showLabels": true, "showCommonLabels": false, "wrapLines": false, "enableLogDetails": true}
+    },
+    {
+      "id": 4,
+      "type": "text",
+      "title": "학습 미션",
+      "gridPos": {"h": 5, "w": 24, "x": 0, "y": 20},
+      "options": {"mode": "markdown", "content": "### 조사 순서\n1. 영향 시간대와 Request rate를 확인합니다.\n2. Loki에서 오류 로그를 찾습니다.\n3. 로그의 `trace_id`로 Tempo Explore를 엽니다."}
+    }
+  ]
+}

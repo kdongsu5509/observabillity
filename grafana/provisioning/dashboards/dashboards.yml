@@ -1,0 +1,10 @@
+apiVersion: 1
+providers:
+  - name: observability-learning
+    orgId: 1
+    folder: 비비디의 관측 실습
+    type: file
+    disableDeletion: true
+    editable: false
+    options:
+      path: /var/lib/grafana/dashboards

@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <title>보고 있는 눈</title>
+  <rect width="64" height="64" rx="16" fill="#0CEFD3"/>
+  <ellipse cx="22" cy="32" rx="12" ry="17" fill="#fff"/>
+  <ellipse cx="43" cy="32" rx="12" ry="17" fill="#fff"/>
+  <ellipse cx="26" cy="33" rx="5" ry="8" fill="#191A1A"/>
+  <ellipse cx="47" cy="33" rx="5" ry="8" fill="#191A1A"/>
+</svg>
