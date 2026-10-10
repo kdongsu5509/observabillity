@@ -208,6 +208,8 @@ const stackSceneNodes = [
     role: "신호를 만드는 앱",
     detail: "구조화 로그와 Actuator 메트릭, OpenTelemetry 트레이스를 내보냅니다.",
     color: "#8ce3ce",
+    logo: "/logos/spring-boot.svg",
+    containerLogo: "/logos/ec2.png",
     position: [-4.2, 0, 0],
   },
   {
@@ -216,6 +218,7 @@ const stackSceneNodes = [
     role: "수집·처리·전달",
     detail: "로그·메트릭·트레이스를 받아 파싱하고 각 저장소로 전달합니다.",
     color: "#f2c56b",
+    logo: "/logos/alloy.svg",
     position: [-1.8, 0, 0],
   },
   {
@@ -224,6 +227,7 @@ const stackSceneNodes = [
     role: "메트릭 저장",
     detail: "Alloy의 remote_write 샘플을 WAL과 TSDB에 저장하고 PromQL로 읽습니다.",
     color: "#ff9f68",
+    logo: "/logos/prometheus.svg",
     position: [1.3, 1.45, 0],
   },
   {
@@ -232,6 +236,7 @@ const stackSceneNodes = [
     role: "로그 저장",
     detail: "라벨로 스트림을 좁히고 로그 청크와 인덱스를 저장해 LogQL로 조회합니다.",
     color: "#8eb8ff",
+    logo: "/logos/loki.svg",
     position: [1.3, 0, 0],
   },
   {
@@ -240,6 +245,7 @@ const stackSceneNodes = [
     role: "트레이스 저장",
     detail: "OTLP 트레이스를 블록으로 보관하고 TraceQL과 trace ID로 찾습니다.",
     color: "#c7a5ff",
+    logo: "/logos/tempo.svg",
     position: [1.3, -1.45, 0],
   },
   {
@@ -248,6 +254,7 @@ const stackSceneNodes = [
     role: "조회·알림",
     detail: "세 저장소의 쿼리를 한 화면에 연결하고 대시보드와 알림을 평가합니다.",
     color: "#ff8f9f",
+    logo: "/logos/grafana.svg",
     position: [4.2, 0, 0],
   },
 ];
@@ -265,6 +272,7 @@ const stackSceneEdges = [
 function ToolStackScene() {
   const mountRef = useRef(null);
   const meshesRef = useRef(new Map());
+  const framesRef = useRef(new Map());
   const [selectedId, setSelectedId] = useState("alloy");
   const selectedNode =
     stackSceneNodes.find((node) => node.id === selectedId) || stackSceneNodes[1];
@@ -291,29 +299,65 @@ function ToolStackScene() {
     const positions = new Map(
       stackSceneNodes.map((node) => [node.id, new THREE.Vector3(...node.position)]),
     );
-    const materialById = new Map();
     const hitTargets = [];
+    const textureLoader = new THREE.TextureLoader();
     stackSceneNodes.forEach((node) => {
-      const material = new THREE.MeshStandardMaterial({
-        color: node.color,
-        emissive: node.color,
-        emissiveIntensity: node.id === "alloy" ? 0.75 : 0.22,
-        roughness: 0.35,
-        metalness: 0.12,
-      });
-      materialById.set(node.id, material);
-      const mesh = new THREE.Mesh(new THREE.IcosahedronGeometry(0.48, 2), material);
-      mesh.position.copy(positions.get(node.id));
-      mesh.userData.id = node.id;
-      graph.add(mesh);
-      hitTargets.push(mesh);
-      meshesRef.current.set(node.id, mesh);
+      const nodeGroup = new THREE.Group();
+      nodeGroup.position.copy(positions.get(node.id));
+      graph.add(nodeGroup);
+
+      const hitMesh = new THREE.Mesh(
+        new THREE.BoxGeometry(node.id === "service" ? 1.6 : 1.05, node.id === "service" ? 1.45 : 1.05, 0.5),
+        new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false }),
+      );
+      hitMesh.userData.id = node.id;
+      nodeGroup.add(hitMesh);
+      hitTargets.push(hitMesh);
+      meshesRef.current.set(node.id, nodeGroup);
+
+      const frameSize = node.id === "service" ? [1.6, 1.45, 0.48] : [1.04, 1.04, 0.06];
+      const frame = new THREE.LineSegments(
+        new THREE.EdgesGeometry(new THREE.BoxGeometry(...frameSize)),
+        new THREE.LineBasicMaterial({ color: node.color, transparent: true, opacity: 0.3 }),
+      );
+      frame.userData.nodeFrame = node.id;
+      nodeGroup.add(frame);
+      framesRef.current.set(node.id, frame);
+
+      if (node.id === "service") {
+        const ec2Texture = textureLoader.load(node.containerLogo);
+        ec2Texture.colorSpace = THREE.SRGBColorSpace;
+        const ec2Logo = new THREE.Sprite(
+          new THREE.SpriteMaterial({ map: ec2Texture, transparent: true, depthTest: true }),
+        );
+        ec2Logo.scale.set(0.36, 0.36, 1);
+        ec2Logo.position.set(0, 0.47, 0.27);
+        nodeGroup.add(ec2Logo);
+        const springTexture = textureLoader.load(node.logo);
+        springTexture.colorSpace = THREE.SRGBColorSpace;
+        const springLogo = new THREE.Sprite(
+          new THREE.SpriteMaterial({ map: springTexture, transparent: true, depthTest: true }),
+        );
+        springLogo.scale.set(0.68, 0.68, 1);
+        springLogo.position.set(0, -0.08, 0.27);
+        nodeGroup.add(springLogo);
+      } else {
+        const texture = textureLoader.load(node.logo);
+        texture.colorSpace = THREE.SRGBColorSpace;
+        const logo = new THREE.Sprite(
+          new THREE.SpriteMaterial({ map: texture, transparent: true, color: 0xffffff, depthTest: true }),
+        );
+        logo.scale.set(0.78, 0.78, 1);
+        logo.position.z = 0.08;
+        nodeGroup.add(logo);
+      }
+
       const ring = new THREE.Mesh(
-        new THREE.TorusGeometry(0.66, 0.018, 8, 48),
+        new THREE.TorusGeometry(node.id === "service" ? 0.9 : 0.66, 0.018, 8, 48),
         new THREE.MeshBasicMaterial({ color: node.color, transparent: true, opacity: 0.46 }),
       );
       ring.rotation.x = Math.PI / 2;
-      ring.position.copy(mesh.position);
+      ring.position.copy(positions.get(node.id));
       ring.userData.nodeRing = node.id;
       graph.add(ring);
     });
@@ -326,13 +370,13 @@ function ToolStackScene() {
       graph.add(
         new THREE.Line(
           geometry,
-          new THREE.LineBasicMaterial({ color: 0x79cdb8, transparent: true, opacity: 0.42 }),
+          new THREE.LineBasicMaterial({ color: 0x0c9c83, transparent: true, opacity: 0.42 }),
         ),
       );
       for (let i = 0; i < 2; i += 1) {
         const particle = new THREE.Mesh(
           new THREE.SphereGeometry(0.065, 8, 8),
-          new THREE.MeshBasicMaterial({ color: 0xeafff5 }),
+          new THREE.MeshBasicMaterial({ color: 0x087c6d }),
         );
         particle.userData = { from, to, offset: (edgeIndex * 0.17 + i * 0.5) % 1 };
         graph.add(particle);
@@ -391,18 +435,22 @@ function ToolStackScene() {
       renderer.dispose();
       graph.traverse((object) => {
         object.geometry?.dispose();
-        if (Array.isArray(object.material)) object.material.forEach((item) => item.dispose());
-        else object.material?.dispose();
+        if (Array.isArray(object.material)) object.material.forEach((item) => { item.map?.dispose(); item.dispose(); });
+        else { object.material?.map?.dispose(); object.material?.dispose(); }
       });
       mount.removeChild(renderer.domElement);
       meshesRef.current.clear();
+      framesRef.current.clear();
     };
   }, []);
 
   useEffect(() => {
     meshesRef.current.forEach((mesh, id) => {
-      mesh.material.emissiveIntensity = id === selectedId ? 1.15 : 0.22;
-      mesh.scale.setScalar(id === selectedId ? 1.18 : 1);
+      mesh.scale.setScalar(id === selectedId ? 1.08 : 1);
+    });
+    framesRef.current.forEach((frame, id) => {
+      frame.material.opacity = id === selectedId ? 0.95 : 0.3;
+      frame.scale.setScalar(id === selectedId ? 1.05 : 1);
     });
   }, [selectedId]);
 

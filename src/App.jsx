@@ -40,7 +40,7 @@ function Header({ page }) {
               if (!e.currentTarget.contains(e.relatedTarget)) setInfo(false);
             }}
           >
-            <a className={page === "thanks" ? "active" : ""} href="/thanks-to">
+            <a className={page === "thanks" ? "active" : ""} href="/techotalk">
               관련 테코톡
             </a>
             <button
@@ -119,7 +119,7 @@ export default function App() {
       ? "practice"
       : path === "/tools" || toolPath
         ? "tools"
-        : path === "/thanks-to"
+        : path === "/techotalk"
           ? "thanks"
           : "read";
   useEffect(() => {

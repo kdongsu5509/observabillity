@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import * as THREE from "three";
 import { sources } from "./content";
 
 const maps = {
@@ -672,136 +673,209 @@ const architectureLayouts = {
   },
 };
 
-function ArchitectureSvg({ tool, active, setActive, instance = "inline" }) {
-  const width = 1040;
-  const layout = architectureLayouts[tool.id];
-  const height = layout.height;
-  const nodeWidth = 156;
-  const nodeHeight = 90;
-  const protocolMap = {
-    alloy: ["OTLP / 4317", "discovery", "pipeline", "remote_write"],
-    prometheus: ["Alloy", "remote_write", "WAL", "rules", "PromQL / HTTP"],
-    loki: ["POST /push", "ring", "chunks + index", "LogQL / HTTP"],
-    tempo: ["OTLP / 4317", "ring", "blocks", "TraceQL / HTTP"],
-    grafana: ["HTTP / HTTPS", "query", "transform", "alert"],
-  };
-  const brandMap = { alloy: "A", prometheus: "P", loki: "L", tempo: "T", grafana: "G" };
-  const uid = `${tool.id}-${instance}`;
-  const protocols = protocolMap[tool.id] || [];
-  const position = (index) => ({ ...layout.nodes[index], w: nodeWidth, h: nodeHeight });
-  const center = (index) => {
-    const node = position(index);
-    return { x: node.x + node.w / 2, y: node.y + node.h / 2 };
-  };
-  const edgePath = (edge) => {
-    const from = position(edge.from);
-    const to = position(edge.to);
-    const start = { x: from.x + from.w, y: from.y + from.h / 2 };
-    const end = { x: to.x, y: to.y + to.h / 2 };
-    if (to.x > from.x) return `M ${start.x} ${start.y} C ${start.x + 28} ${start.y}, ${end.x - 28} ${end.y}, ${end.x} ${end.y}`;
-    return `M ${center(edge.from).x} ${from.y + from.h} C ${center(edge.from).x} ${from.y + from.h + 42}, ${center(edge.to).x} ${to.y - 42}, ${center(edge.to).x} ${to.y}`;
-  };
-  const edgeLabel = (edge) => {
-    const from = center(edge.from);
-    const to = center(edge.to);
-    return { x: (from.x + to.x) / 2, y: (from.y + to.y) / 2 - 10 };
-  };
-  return (
-    <svg
-      className="tool-architecture-svg"
-      viewBox={`0 0 ${width} ${height}`}
-      role="img"
-      aria-label={`${tool.name} 내부 구성 파이프라인`}
-    >
-      <defs>
-        <pattern id={`grid-${uid}`} width="18" height="18" patternUnits="userSpaceOnUse">
-          <path d="M 18 0 L 0 0 0 18" fill="none" stroke="#e7edf4" strokeWidth="1" />
-        </pattern>
-        <marker id={`arrow-${uid}`} markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
-          <path d="M0,0 L8,4 L0,8 z" fill="#60758b" />
-        </marker>
-        <marker id={`failure-arrow-${uid}`} markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto">
-          <path d="M0,0 L8,4 L0,8 z" fill="#c44545" />
-        </marker>
-        {layout.edges.map((edge, i) => <path key={`path-def-${i}`} id={`flow-${uid}-${i}`} d={edgePath(edge)} />)}
-      </defs>
+const architectureLogoByTool = {
+  alloy: "/logos/alloy.svg",
+  prometheus: "/logos/prometheus.svg",
+  loki: "/logos/loki.svg",
+  tempo: "/logos/tempo.svg",
+  grafana: "/logos/grafana.svg",
+};
 
-      <rect className="tool-svg-grid" style={{ fill: `url(#grid-${uid})` }} x="0" y="0" width={width} height={height} rx="12" />
-      <text className="tool-svg-brand" x="24" y="28">{brandMap[tool.id]}</text>
-      {layout.zones.map((item, index) => (
-        <g key={`${item.label}-${index}`} className={`tool-svg-zone tool-svg-zone-${index}`}>
-          <rect x={item.x} y={item.y} width={item.w} height={item.h} rx="10" />
-          <text x={item.x + 12} y={item.y + 24}>{item.label}</text>
-        </g>
-      ))}
-      {layout.edges.map((edge, i) => {
-        const label = edgeLabel(edge);
-        return (
-          <g key={`edge-${i}`}>
-            <path
-              d={edgePath(edge)}
-              className={`tool-svg-flow ${active === edge.from || active === edge.to ? "is-highlighted" : ""}`}
-              markerEnd={`url(#arrow-${uid})`}
-            />
-            <text className="tool-svg-edge-label" x={label.x} y={label.y}>{edge.label}</text>
-          </g>
-        );
-      })}
-      {layout.edges.map((_, i) => (
-        <circle key={`packet-${i}`} className="tool-svg-packet" r="4">
-          <animateMotion dur="2.8s" repeatCount="indefinite" begin={`${i * 0.32}s`}>
-            <mpath href={`#flow-${uid}-${i}`} />
-          </animateMotion>
-        </circle>
-      ))}
-      {layout.failure && (
-        <>
-          <path
-            className="tool-svg-failure"
-            d={edgePath(layout.failure)}
-            markerEnd={`url(#failure-arrow-${uid})`}
-          />
-          <text className="tool-svg-failure-label" x={edgeLabel(layout.failure).x} y={edgeLabel(layout.failure).y + 18}>{layout.failure.label}</text>
-        </>
-      )}
-      {layout.outputs.map((output) => <text key={output.text} className="tool-svg-output" x={output.x} y={output.y}>{output.text}</text>)}
-      {tool.nodes.map((node, i) => {
-        const { x, y } = position(i);
-        const selected = active === i;
-        return (
-          <g
-            key={node.label}
-            tabIndex="0"
-            role="button"
-            aria-label={`${node.label}: ${node.detail}`}
-            aria-pressed={selected}
-            onMouseEnter={() => setActive(i)}
-            onFocus={() => setActive(i)}
-            onClick={() => setActive(i)}
-            onKeyDown={(event) => {
-              if (event.key === "Enter" || event.key === " ") {
-                event.preventDefault();
-                setActive(i);
-              }
-            }}
-            className={`tool-architecture-svg-node ${selected ? "is-active" : ""}`}
-          >
-            <rect x={x} y={y} width={nodeWidth} height={nodeHeight} rx="8" />
-            <circle cx={x + 22} cy={y + 23} r="12" className="tool-svg-node-icon" />
-            <text x={x + 22} y={y + 27} textAnchor="middle" className="tool-svg-node-icon-text">{String(i + 1)}</text>
-            <text x={x + 42} y={y + 27} className="tool-architecture-svg-index">
-              {String(i + 1).padStart(2, "0")}
-            </text>
-            <text x={x + 14} y={y + 53} className="tool-architecture-svg-label">
-              {node.label}
-            </text>
-            <text x={x + 14} y={y + 73} className="tool-architecture-svg-hint">
-              {protocols[i] || (selected ? "selected" : "hover to inspect")}
-            </text>
-          </g>
-        );
-      })}
-    </svg>
+function makeArchitectureLabel(text, color = "#29465b", fontSize = 34) {
+  const canvas = document.createElement("canvas");
+  canvas.width = 720;
+  canvas.height = 90;
+  const context = canvas.getContext("2d");
+  context.clearRect(0, 0, canvas.width, canvas.height);
+  context.font = `700 ${fontSize}px Arial, sans-serif`;
+  context.fillStyle = color;
+  context.textBaseline = "middle";
+  context.fillText(text, 18, canvas.height / 2);
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.needsUpdate = true;
+  return texture;
+}
+
+function ArchitectureThree({ tool, active, setActive }) {
+  const mountRef = useRef(null);
+  const nodeRefs = useRef(new Map());
+  const frameRefs = useRef(new Map());
+
+  useEffect(() => {
+    const mount = mountRef.current;
+    if (!mount) return undefined;
+    const layout = architectureLayouts[tool.id];
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(25, 1, 0.1, 100);
+    camera.position.set(0, 0, 14);
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    renderer.setClearColor(0x000000, 0);
+    mount.appendChild(renderer.domElement);
+
+    const graph = new THREE.Group();
+    scene.add(graph);
+    const point = (x, y, z = 0) => new THREE.Vector3((x / 1040 - 0.5) * 11.8, (0.5 - y / layout.height) * 4.1, z);
+    const nodePoint = (index) => point(layout.nodes[index].x + 78, layout.nodes[index].y + 45, 0.18);
+    const textureLoader = new THREE.TextureLoader();
+    const disposableTextures = [];
+    const hitTargets = [];
+
+    layout.zones.forEach((zone) => {
+      const corners = [
+        point(zone.x, zone.y, -0.2),
+        point(zone.x + zone.w, zone.y, -0.2),
+        point(zone.x + zone.w, zone.y + zone.h, -0.2),
+        point(zone.x, zone.y + zone.h, -0.2),
+      ];
+      graph.add(new THREE.LineLoop(
+        new THREE.BufferGeometry().setFromPoints(corners),
+        new THREE.LineBasicMaterial({ color: 0x9bb5b0, transparent: true, opacity: 0.52 }),
+      ));
+      const zoneLabel = new THREE.Sprite(new THREE.SpriteMaterial({
+        map: (() => { const t = makeArchitectureLabel(zone.label, "#56746c", 26); disposableTextures.push(t); return t; })(),
+        transparent: true,
+      }));
+      zoneLabel.position.copy(point(zone.x + 18, zone.y + 22, -0.1));
+      zoneLabel.scale.set(1.7, 0.22, 1);
+      graph.add(zoneLabel);
+    });
+
+    const centerPoint = (index) => nodePoint(index);
+    const edgeObjects = [];
+    layout.edges.forEach((edge) => {
+      const from = centerPoint(edge.from);
+      const to = centerPoint(edge.to);
+      const geometry = new THREE.BufferGeometry().setFromPoints([from, to]);
+      const line = new THREE.Line(geometry, new THREE.LineBasicMaterial({ color: 0x6b8a85, transparent: true, opacity: 0.68 }));
+      graph.add(line);
+      edgeObjects.push({ from, to });
+      const labelTexture = makeArchitectureLabel(edge.label, "#56746c", 22);
+      disposableTextures.push(labelTexture);
+      const label = new THREE.Sprite(new THREE.SpriteMaterial({ map: labelTexture, transparent: true }));
+      label.position.lerpVectors(from, to, 0.5);
+      label.position.y += 0.18;
+      label.scale.set(1.3, 0.16, 1);
+      graph.add(label);
+    });
+
+    tool.nodes.forEach((node, index) => {
+      const nodeGroup = new THREE.Group();
+      nodeGroup.position.copy(nodePoint(index));
+      graph.add(nodeGroup);
+      const hit = new THREE.Mesh(
+        new THREE.BoxGeometry(1.72, 0.82, 0.24),
+        new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false }),
+      );
+      hit.userData.index = index;
+      nodeGroup.add(hit);
+      hitTargets.push(hit);
+      const frame = new THREE.LineSegments(
+        new THREE.EdgesGeometry(new THREE.BoxGeometry(1.72, 0.82, 0.24)),
+        new THREE.LineBasicMaterial({ color: 0x2a8f7c, transparent: true, opacity: index === active ? 0.98 : 0.26 }),
+      );
+      nodeGroup.add(frame);
+      const logoTexture = textureLoader.load(architectureLogoByTool[tool.id]);
+      logoTexture.colorSpace = THREE.SRGBColorSpace;
+      disposableTextures.push(logoTexture);
+      const logo = new THREE.Sprite(
+        new THREE.SpriteMaterial({ map: logoTexture, transparent: true, depthTest: true }),
+      );
+      logo.scale.set(0.42, 0.42, 1);
+      logo.position.set(-0.52, 0.02, 0.15);
+      nodeGroup.add(logo);
+      const labelTexture = makeArchitectureLabel(node.label, "#18384b", 29);
+      disposableTextures.push(labelTexture);
+      const label = new THREE.Sprite(new THREE.SpriteMaterial({ map: labelTexture, transparent: true }));
+      label.position.set(0.12, 0.02, 0.15);
+      label.scale.set(1.35, 0.18, 1);
+      nodeGroup.add(label);
+      nodeRefs.current.set(index, nodeGroup);
+      frameRefs.current.set(index, frame);
+    });
+
+    const packets = edgeObjects.map(({ from, to }, index) => {
+      const packet = new THREE.Mesh(new THREE.SphereGeometry(0.055, 8, 8), new THREE.MeshBasicMaterial({ color: 0x197f70 }));
+      packet.userData = { from, to, offset: index * 0.21 };
+      graph.add(packet);
+      return packet;
+    });
+    const raycaster = new THREE.Raycaster();
+    const pointer = new THREE.Vector2();
+    const onPointerDown = (event) => {
+      const rect = renderer.domElement.getBoundingClientRect();
+      pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+      pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+      raycaster.setFromCamera(pointer, camera);
+      const [hit] = raycaster.intersectObjects(hitTargets, false);
+      if (hit?.object?.userData.index !== undefined) setActive(hit.object.userData.index);
+    };
+    renderer.domElement.addEventListener("pointerdown", onPointerDown);
+
+    const resize = () => {
+      const { width, height } = mount.getBoundingClientRect();
+      renderer.setSize(Math.max(width, 640), Math.max(height, 300), false);
+      camera.aspect = Math.max(width, 640) / Math.max(height, 300);
+      camera.updateProjectionMatrix();
+    };
+    const resizeObserver = new ResizeObserver(resize);
+    resizeObserver.observe(mount);
+    resize();
+    const clock = new THREE.Clock();
+    let frame;
+    const animate = () => {
+      const elapsed = clock.getElapsedTime();
+      packets.forEach((packet) => {
+        const progress = (elapsed * 0.22 + packet.userData.offset) % 1;
+        packet.position.lerpVectors(packet.userData.from, packet.userData.to, progress);
+      });
+      frameRefs.current.forEach((frameObject, index) => {
+        frameObject.rotation.z = Math.sin(elapsed * 0.75 + index) * 0.01;
+      });
+      renderer.render(scene, camera);
+      frame = requestAnimationFrame(animate);
+    };
+    animate();
+    return () => {
+      cancelAnimationFrame(frame);
+      resizeObserver.disconnect();
+      renderer.domElement.removeEventListener("pointerdown", onPointerDown);
+      renderer.dispose();
+      scene.traverse((object) => {
+        object.geometry?.dispose();
+        if (Array.isArray(object.material)) object.material.forEach((item) => item.dispose());
+        else object.material?.dispose();
+      });
+      disposableTextures.forEach((texture) => texture.dispose());
+      nodeRefs.current.clear();
+      frameRefs.current.clear();
+      if (mount.contains(renderer.domElement)) mount.removeChild(renderer.domElement);
+    };
+  }, [tool, setActive]);
+
+  useEffect(() => {
+    nodeRefs.current.forEach((nodeGroup, index) => {
+      nodeGroup.scale.setScalar(index === active ? 1.06 : 1);
+    });
+    frameRefs.current.forEach((frame, index) => {
+      frame.material.opacity = index === active ? 0.98 : 0.26;
+    });
+  }, [active]);
+
+  return (
+    <div className="tool-architecture-three-shell">
+      <div ref={mountRef} className="tool-architecture-three" role="img" aria-label={`${tool.name} architecture pipeline (Three.js)`} />
+      <div className="tool-architecture-three-node-list" role="list" aria-label={`Select ${tool.name} components`}>
+        {tool.nodes.map((node, index) => (
+          <button type="button" key={node.label} className={active === index ? "is-active" : ""} onClick={() => setActive(index)}>
+            <b>{String(index + 1).padStart(2, "0")}</b>
+            <span>{node.label}</span>
+          </button>
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -853,7 +927,7 @@ export function ToolArchitectureGallery({ focusTool } = {}) {
             className={selectedTool === index ? "is-active" : ""}
             onClick={() => selectTool(index)}
           >
-            <span className={`tool-brand-mark brand-${item.id}`} aria-hidden="true">{{ alloy: "A", prometheus: "P", loki: "L", tempo: "T", grafana: "G" }[item.id]}</span>
+            <span className="tool-brand-mark" aria-hidden="true" style={{ backgroundImage: `url(${architectureLogoByTool[item.id]})` }} />
             <span className="tool-tab-index">{String(index + 1).padStart(2, "0")}</span>
             <strong>{item.name}</strong>
             <small>{item.role}</small>
@@ -876,7 +950,7 @@ export function ToolArchitectureGallery({ focusTool } = {}) {
                 <span aria-hidden="true">↗</span> 크게 보기
               </button>
             </div>
-            <ArchitectureSvg tool={tool} active={activeNode} setActive={setActiveNode} instance="inline" />
+            <ArchitectureThree tool={tool} active={activeNode} setActive={setActiveNode} />
           </div>
           <div className="tool-architecture-detail" aria-live="polite">
             <span>구성 {String(activeNode + 1).padStart(2, "0")}</span>
@@ -890,15 +964,6 @@ export function ToolArchitectureGallery({ focusTool } = {}) {
             </div>
           </div>
         </div>
-        {tool.id === "loki" && (
-          <figure className="tool-architecture-figure">
-            <img src="/diagrams/loki-architecture.svg" alt="Loki의 로그 쓰기 경로, 저장 형식, 읽기 경로" />
-            <figcaption>
-              Loki의 쓰기·저장·읽기 경로를 한 장으로 정리한 그림입니다. 실제 배포 모드와
-              설정에 따라 구성 요소 수와 경로가 달라질 수 있습니다.
-            </figcaption>
-          </figure>
-        )}
         <OperatorDetails operator={tool.operator} />
         <ArchitectureLinks ids={tool.refs} />
       </div>
@@ -922,7 +987,7 @@ export function ToolArchitectureGallery({ focusTool } = {}) {
             </div>
             <div className="tool-architecture-lightbox-body">
               <div className="tool-architecture-lightbox-diagram">
-                <ArchitectureSvg tool={tool} active={activeNode} setActive={setActiveNode} instance="expanded" />
+                <ArchitectureThree tool={tool} active={activeNode} setActive={setActiveNode} />
               </div>
               <div className="tool-architecture-lightbox-detail" aria-live="polite">
                 <span>구성 {String(activeNode + 1).padStart(2, "0")}</span>

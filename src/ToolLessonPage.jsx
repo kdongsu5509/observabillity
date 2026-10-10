@@ -2,6 +2,15 @@ import { sources } from "./content";
 import { ToolArchitectureGallery } from "./Architecture";
 import { findToolSeries, toolCurriculum } from "./toolLessons";
 
+const toolLogoPaths = {
+  otel: "/logos/opentelemetry.svg",
+  alloy: "/logos/alloy.svg",
+  prometheus: "/logos/prometheus.svg",
+  loki: "/logos/loki.svg",
+  tempo: "/logos/tempo.svg",
+  grafana: "/logos/grafana.svg",
+};
+
 function SourceLinks({ ids = [] }) {
   return (
     <div className="tool-lesson-sources">
@@ -73,9 +82,12 @@ export function ToolLearningPaths() {
       <div className="tool-learning-grid">
         {toolCurriculum.map((series) => (
           <article className="tool-learning-card" key={series.id}>
-            <div className={`tool-learning-mark brand-${series.id === "otel" ? "alloy" : series.id}`} aria-hidden="true">
-              {series.name[0]}
-            </div>
+            <div
+              className="tool-learning-mark"
+              role="img"
+              aria-label={`${series.name} logo`}
+              style={{ backgroundImage: `url(${toolLogoPaths[series.id] || toolLogoPaths.alloy})` }}
+            />
             <div className="tool-learning-card-copy">
               <span>{series.role}</span>
               <h3>{series.name}</h3>
