@@ -24,10 +24,18 @@ function ReadCard({ chapter, featured = false }) {
       className={`read-card ${featured ? "is-featured" : ""}`}
       href={`/read/${chapter.id}`}
     >
+      <span className="read-card-index" aria-hidden="true">
+        {chapter.number}
+      </span>
       <div className="read-card-copy">
-        <span className="read-meta">
-          {lesson.category} <b>·</b> {lesson.readTime}
-        </span>
+        <div className="read-card-topline">
+          <span className="read-meta">
+            {lesson.category} <b>·</b> {lesson.readTime}
+          </span>
+          <span className="read-card-arrow" aria-hidden="true">
+            ↗
+          </span>
+        </div>
         <h3>{chapter.title}</h3>
         <p>{chapter.lead}</p>
         <span className="read-more">

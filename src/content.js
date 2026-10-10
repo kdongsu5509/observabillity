@@ -629,7 +629,7 @@ export const chapters = [
       },
       {
         title: "이 사이트를 읽는 순서",
-        text: "01~03은 앱 안에서 로그·메트릭·트레이스를 만드는 이야기다. 04~05는 만든 데이터를 표준 규약으로 내보내고 저장소에 나누어 담는 이야기다. 06~08은 쌓인 데이터로 알림을 받고, 부하를 시험하고, 장애를 조사하는 이야기다. 글마다 오래된 방법에서 지금의 방법까지 같은 순서로 따라간다.",
+        text: "01~04은 앱 안에서 로그·메트릭·트레이스를 만드는 이야기다. 05~06는 만든 데이터를 표준 규약으로 내보내고 저장소에 나누어 담는 이야기다. 07~09은 쌓인 데이터로 알림을 받고, 부하를 시험하고, 장애를 조사하는 이야기다. 글마다 오래된 방법에서 지금의 방법까지 같은 순서로 따라간다.",
         refs: ["otel", "grafana"],
       },
       {
@@ -953,7 +953,7 @@ log.error("카카오 토큰 요청 실패 code={}", code, e);   // e 는 스택 
   },
   {
     id: "mdc-ecs",
-    number: "01A",
+    number: "02",
     title: "MDC 값이 ECS JSON 필드가 되는 과정",
     lead: "요청 안의 MDC 값이 로그 이벤트를 거쳐 ECS JSON 필드가 되고, 수집기와 Loki에서 검색되는 경로를 한 편으로 정리합니다.",
     tags: ["MDC", "ECS", "구조화 로그"],
@@ -994,7 +994,7 @@ log.error("카카오 토큰 요청 실패 code={}", code, e);   // e 는 스택 
   },
   {
     id: "metrics",
-    number: "02",
+    number: "03",
     title: "숫자로 이상을 알아채기",
     lead: "로그를 읽기 전에, 얼마나 자주 얼마나 느리게 실패하는지 본다.",
     tags: ["Actuator", "Micrometer", "Prometheus"],
@@ -1146,7 +1146,7 @@ hikaricp_connections_active{pool="HikariPool-1"} 3.0`,
       },
       {
         title: "측정기 종류(Meter)",
-        text: "숫자를 어떻게 읽는지(rate, increase, p95)는 05번 글의 Prometheus에서 다룬다.",
+        text: "숫자를 어떻게 읽는지(rate, increase, p95)는 06번 글의 Prometheus에서 다룬다.",
         table: {
           head: ["종류", "뜻", "예", "Prometheus에서"],
           rows: [
@@ -1241,7 +1241,7 @@ Gauge.builder("bibbidi.pending.jobs", jobQueue, Queue::size).register(registry);
   },
   {
     id: "trace",
-    number: "03",
+    number: "04",
     title: "MDC와 trace_id로 요청 잇기",
     lead: "여러 로그가 같은 결혼 정보 요청에서 나왔는지 확인한다.",
     tags: ["MDC", "trace_id", "Trace Context"],
@@ -1352,7 +1352,7 @@ try (var ignored = MDC.putCloseable("wedding_id", weddingId)) {
   },
   {
     id: "transport",
-    number: "04",
+    number: "05",
     title: "OpenTelemetry와 OTLP",
     lead: "계측 데이터가 어떤 길로 이동하는지 그려 본다.",
     tags: ["OpenTelemetry", "OTLP", "Collector"],
@@ -1511,7 +1511,7 @@ class ChecklistGenerator {
   },
   {
     id: "stack",
-    number: "05",
+    number: "06",
     title: "모으고, 나눠 담고, 한 화면에서 보기",
     lead: "Alloy가 모으고, Prometheus·Loki·Tempo가 나눠 담고, Grafana에서 함께 살펴본다.",
     tags: ["Alloy", "Prometheus", "Loki", "Tempo", "Grafana"],
@@ -2536,7 +2536,7 @@ role_attribute_strict = false           ; true 면 역할을 못 정할 때 로�
   },
   {
     id: "alerting",
-    number: "06",
+    number: "07",
     title: "알림과 온콜",
     lead: "문제가 생긴 사실이 담당자에게 닿고, 답을 받은 뒤에도 이어져야 한다.",
     tags: ["Grafana Alerting", "온콜", "CloudWatch"],
@@ -2563,7 +2563,7 @@ role_attribute_strict = false           ; true 면 역할을 못 정할 때 로�
   },
   {
     id: "performance",
-    number: "07",
+    number: "08",
     title: "성능 테스트와 지연",
     lead: "더 많은 요청을 받는 동안 응답 시간이 어떻게 바뀌는지 읽는다.",
     tags: ["k6", "p95", "처리량"],
@@ -2591,7 +2591,7 @@ role_attribute_strict = false           ; true 면 역할을 못 정할 때 로�
   },
   {
     id: "incident",
-    number: "08",
+    number: "09",
     title: "비비디의 장애 조사",
     lead: "알림 한 건에서 시작해 메트릭, 로그, 트레이스를 차례로 잇는다.",
     tags: ["장애 대응", "조사 순서", "복구"],

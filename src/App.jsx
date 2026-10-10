@@ -142,7 +142,6 @@ export default function App() {
       <footer className="footer">
         <Logo />
         <span>로그 한 줄에서 장애 대응까지.</span>
-        <a href="/thanks-to">관련 테코톡 ↗</a>
       </footer>
     </div>
   );
