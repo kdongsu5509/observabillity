@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { alternatives, sources } from "./content";
+import { sources } from "./content";
 import { ToolLearningPaths } from "./ToolLessonPage";
 
 const layers = [
@@ -569,39 +569,6 @@ export default function ToolGuide() {
             </label>
           </div>
           <Decision form={form} />
-        </section>
-        <section className="guide-comparison">
-          <span className="story-section-label">COMPARE THE OPTIONS</span>
-          <h2>짧게 비교하기</h2>
-          <div
-            className="comparison-table"
-            role="table"
-            aria-label="관측 도구 비교"
-          >
-            <div role="row">
-              <b role="columnheader">역할</b>
-              <b role="columnheader">현재 선택</b>
-              <b role="columnheader">대표 대안</b>
-              <b role="columnheader">선택 기준</b>
-            </div>
-            {alternatives.map((row) => (
-              <div role="row" key={row.task}>
-                <span role="cell">{row.task}</span>
-                <strong role="cell">{row.current}</strong>
-                <span role="cell">{row.others.join(" · ")}</span>
-                <span role="cell">
-                  {row.choice}
-                  <small>{row.trade}</small>
-                  <Docs ids={row.refs} />
-                </span>
-              </div>
-            ))}
-          </div>
-          <p className="guide-case-note">
-            회사 규모별 실제 사용 사례는 공식 제품 문서로 해당 회사의 사용을
-            직접 확인한 경우에만 추가합니다. 근거가 없는 칸은 추정으로 채우지
-            않았습니다.
-          </p>
         </section>
       </div>
     </div>
