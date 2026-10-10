@@ -4,28 +4,6 @@ import { lessons } from "./lessons";
 import { StorageDeepDive, TransportDeepDive } from "./Architecture";
 const SourceManuscripts = lazy(() => import("./SourceManuscripts"));
 
-const thumbnailByChapter = {
-  history:
-    "https://images.unsplash.com/photo-1519741497674-611481863552?auto=format&fit=crop&w=1200&q=80",
-  logging:
-    "https://images.unsplash.com/photo-1515879218367-8466d910aaa4?auto=format&fit=crop&w=1200&q=80",
-  "mdc-ecs":
-    "https://images.unsplash.com/photo-1556761175-b413da4baf72?auto=format&fit=crop&w=1200&q=80",
-  metrics:
-    "https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=1200&q=80",
-  trace:
-    "https://images.unsplash.com/photo-1558494949-ef010cbdcc31?auto=format&fit=crop&w=1200&q=80",
-  transport:
-    "https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=1200&q=80",
-  stack:
-    "https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=1200&q=80",
-  alerting:
-    "https://images.unsplash.com/photo-1563013544-824ae1b704d3?auto=format&fit=crop&w=1200&q=80",
-  performance:
-    "https://images.unsplash.com/photo-1497366811353-6870744d04b2?auto=format&fit=crop&w=1200&q=80",
-  incident:
-    "https://images.unsplash.com/photo-1504384308090-c894fdcc538d?auto=format&fit=crop&w=1200&q=80",
-};
 
 function SourceLinks({ ids = [] }) {
   return (
@@ -39,34 +17,6 @@ function SourceLinks({ ids = [] }) {
   );
 }
 
-function ReadingVisual({ chapter, large = false }) {
-  return (
-    <div
-      className={`reading-visual reading-visual--${chapter.id} ${large ? "is-large" : ""}`}
-      aria-hidden="true"
-    >
-      <img
-        className="reading-visual-image"
-        src={thumbnailByChapter[chapter.id]}
-        alt=""
-        loading={large ? "eager" : "lazy"}
-      />
-      <span className="visual-label">
-        BIBBIDI / {lessons[chapter.id].category.toUpperCase()}
-      </span>
-      <span className="visual-number">{chapter.number}</span>
-      <div className="visual-lines">
-        <i />
-        <i />
-        <i />
-      </div>
-      <span className="visual-caption">
-        {chapter.tags.slice(0, 2).join("  ·  ")}
-      </span>
-    </div>
-  );
-}
-
 function ReadCard({ chapter, featured = false }) {
   const lesson = lessons[chapter.id];
   return (
@@ -74,7 +24,6 @@ function ReadCard({ chapter, featured = false }) {
       className={`read-card ${featured ? "is-featured" : ""}`}
       href={`/read/${chapter.id}`}
     >
-      <ReadingVisual chapter={chapter} large={featured} />
       <div className="read-card-copy">
         <span className="read-meta">
           {lesson.category} <b>·</b> {lesson.readTime}
@@ -343,7 +292,6 @@ export function ReadingArticle({ id }) {
             <a href={`/practice#${chapter.lab}`}>관련 실습 ↗</a>
           </div>
         </header>
-        <ReadingVisual chapter={chapter} large />
         <div className="story-layout">
           <main className="story-body">
             <StoryBridge bridge={lesson.bridge} />
