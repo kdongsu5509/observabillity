@@ -35,6 +35,18 @@ aws cloudformation deploy \
 
 The repository must be reachable by the instance. For a private repository, replace the bootstrap clone step with an SSM or CodeDeploy delivery path; do not put a Git token in the template.
 
+## Automatic deployment
+
+`.github/workflows/deploy.yml` runs on every push to `main`. It builds the site,
+assumes the repository's GitHub OIDC role, finds the running EC2 instance with
+the `observability-host` tag, and runs the Compose update through AWS Systems
+Manager. The repository secret `AWS_ROLE_ARN` must contain the ARN of a role
+whose trust policy is restricted to this repository's `main` branch and whose
+permissions include `ec2:DescribeInstances` and the required SSM actions.
+
+The workflow is already configured with the role used for this repository. It
+will start deploying after the CloudFormation stack has created the EC2 host.
+
 Get the URLs with:
 
 ```bash
