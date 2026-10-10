@@ -468,10 +468,16 @@ function ToolStackScene() {
       <div className="tool-stack-scene-shell">
         <div
           ref={mountRef}
-          className="tool-stack-scene"
+          className={`tool-stack-scene ${selectedId === "service" ? "is-service-selected" : ""}`}
           role="img"
           aria-label="결혼 서비스에서 Alloy를 거쳐 Prometheus, Loki, Tempo로 분기되고 Grafana로 모이는 3D 관측 흐름"
-        />
+        >
+          <span className="stack-service-logo-overlay" aria-hidden="true">
+            <img className="stack-service-ec2-logo" src="/logos/ec2.png" alt="" />
+            <img className="stack-service-spring-logo" src="/logos/spring-boot.svg" alt="" />
+            <b>EC2</b>
+          </span>
+        </div>
         <div className="tool-stack-scene-legend" role="list" aria-label="관측 스택 구성 요소">
           {stackSceneNodes.map((node) => (
             <button

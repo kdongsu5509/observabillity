@@ -804,6 +804,47 @@
   width: 100%;
   height: 100%;
 }
+.stack-service-logo-overlay {
+  position: absolute;
+  z-index: 2;
+  left: 6.5%;
+  top: 50%;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-rows: 1fr auto;
+  width: 82px;
+  height: 76px;
+  padding: 8px;
+  border: 1px solid rgba(42, 143, 124, .72);
+  border-radius: 9px;
+  color: #2a8f7c;
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+.stack-service-logo-overlay b {
+  align-self: end;
+  font-size: 9px;
+  letter-spacing: .08em;
+}
+.stack-service-ec2-logo {
+  width: 19px;
+  height: 19px;
+  justify-self: end;
+  object-fit: contain;
+}
+.stack-service-spring-logo {
+  width: 39px;
+  height: 39px;
+  grid-column: 1 / -1;
+  justify-self: center;
+  align-self: center;
+  object-fit: contain;
+}
+.tool-stack-scene.is-service-selected .stack-service-logo-overlay {
+  border-width: 2px;
+  border-color: #087c6d;
+  box-shadow: 0 0 0 3px rgba(8, 124, 109, .12);
+}
 .tool-stack-scene-legend {
   display: flex;
   flex-direction: column;
